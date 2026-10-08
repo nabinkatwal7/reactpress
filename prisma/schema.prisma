@@ -14,6 +14,8 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  roleId        String?
+  role          Role?     @relation(fields: [roleId], references: [id])
   accounts      Account[]
   sessions      Session[]
   createdAt     DateTime  @default(now())
@@ -52,4 +54,44 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Role {
+  id           String           @id @default(cuid())
+  key          String           @unique
+  name         String
+  capabilities RoleCapability[]
+  users        User[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model Capability {
+  id        String           @id @default(cuid())
+  key       String           @unique
+  name      String
+  roles     RoleCapability[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model RoleCapability {
+  roleId       String
+  capabilityId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  capability   Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, capabilityId])
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  domain    String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isDefault])
 }
