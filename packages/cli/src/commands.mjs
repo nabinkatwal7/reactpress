@@ -277,6 +277,29 @@ async function exportCmd({ flags }) {
   } else process.stdout.write(json);
 }
 
+async function backupCmd({ flags }) {
+  const { url, token } = await loadConfig();
+  if (!url || !token) throw new Error("Not logged in. Run: reactpress login <site-url>");
+  const res = await fetch(`${url}/api/admin/backup`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
+  const file = typeof flags.out === "string" ? flags.out : (res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "backup.zip");
+  const bytes = Buffer.from(await res.arrayBuffer());
+  await writeFile(file, bytes);
+  console.log(`Backup written to ${file} (${(bytes.length / 1024 / 1024).toFixed(1)} MB)`);
+}
+
+async function restoreCmd({ positionals, flags }) {
+  const file = need(positionals[0], "reactpress restore <backup.zip> --yes");
+  if (!flags.yes) throw new Error("Restoring replaces this site's content, media, menus, widgets and settings. Add --yes to confirm.");
+  const { url, token } = await loadConfig();
+  if (!url || !token) throw new Error("Not logged in. Run: reactpress login <site-url>");
+  const res = await fetch(`${url}/api/admin/backup/restore?confirm=replace`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/zip" }, body: await readFile(file) });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+  console.log(`Restored: ${Object.entries(json.report.counts).filter(([, v]) => v).map(([k, v]) => `${v} ${k}`).join(", ")}`);
+  for (const w of json.report.warnings) console.error(`warning: ${w}`);
+}
+
 async function importWordPressCmd({ positionals, flags }) {
   const file = need(positionals[0], "reactpress import-wordpress <export.xml> [--media]");
   const xml = file === "-" ? await readStdin() : await readFile(file, "utf8");
@@ -316,6 +339,8 @@ export const COMMANDS = {
   package: { run: packageCmd, help: "package <folder> [--out dir] [--url-base u]       Zip a theme/plugin and print its registry entry" },
   scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
   export: { run: exportCmd, help: "export [--media] [--out file.json]                Export the site as ReactPress JSON" },
+  backup: { run: backupCmd, help: "backup [--out file.zip]                             Download a backup (content + media) of this site" },
+  restore: { run: restoreCmd, help: "restore <backup.zip> --yes                          Restore a backup, replacing this site" },
   "import-wordpress": { run: importWordPressCmd, help: "import-wordpress <export.xml> [--media]                 Import a WordPress export (WXR) into this site" },
   import: { run: importCmd, help: "import <file.json> [--mode merge|replace] [--yes]   Import a ReactPress JSON export" },
 };

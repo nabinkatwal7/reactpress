@@ -21,6 +21,26 @@ export function ToolsPanel() {
   const [wpBusy, setWpBusy] = useState(false);
   const [wpError, setWpError] = useState<string | null>(null);
   const [wpReport, setWpReport] = useState<Report | null>(null);
+  const [bkFile, setBkFile] = useState<File | null>(null);
+  const [bkConfirmed, setBkConfirmed] = useState(false);
+  const [bkBusy, setBkBusy] = useState(false);
+  const [bkError, setBkError] = useState<string | null>(null);
+  const [bkReport, setBkReport] = useState<Report | null>(null);
+
+  async function runRestore(e: React.FormEvent) {
+    e.preventDefault();
+    if (!bkFile) return;
+    setBkBusy(true);
+    setBkError(null);
+    setBkReport(null);
+    const res = await fetch("/api/admin/backup/restore?confirm=replace", { method: "POST", headers: { "Content-Type": "application/zip" }, body: bkFile });
+    const json = (await res.json().catch(() => null)) as { error?: string; report?: Report } | null;
+    setBkBusy(false);
+    if (!res.ok) return setBkError(json?.error ?? "Restore failed");
+    setBkReport(json!.report!);
+    setBkConfirmed(false);
+    router.refresh();
+  }
 
   async function runWordPress(e: React.FormEvent) {
     e.preventDefault();
@@ -122,6 +142,47 @@ export function ToolsPanel() {
           </div>
         ) : null}
       </section>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Backup and restore</h2>
+        <p className="text-neutral-600">
+          A backup is one zip with the whole site (content, settings, menus, widgets, theme and plugin settings) and every uploaded file, with checksums so damage is
+          detected. Users, passwords and webhooks are not included. For sites over 500 MB, back up the database and the storage folder instead.
+        </p>
+        <div>
+          {/* a file download from an API route, not a page navigation */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a className={`${btn} inline-block bg-neutral-900 text-white`} href="/api/admin/backup" download>
+            Download backup
+          </a>
+        </div>
+        <form onSubmit={runRestore} className="mt-2 flex flex-col gap-3">
+          <input type="file" accept=".zip,application/zip" onChange={(e) => setBkFile(e.target.files?.[0] ?? null)} />
+          <label className="flex items-center gap-2 text-red-700">
+            <input type="checkbox" checked={bkConfirmed} onChange={(e) => setBkConfirmed(e.target.checked)} />
+            Restoring replaces everything on this site now
+          </label>
+          <div>
+            <button type="submit" disabled={!bkFile || !bkConfirmed || bkBusy} className={`${btn} bg-neutral-900 text-white`}>
+              {bkBusy ? "Restoring…" : "Restore backup"}
+            </button>
+          </div>
+        </form>
+        {bkError ? <p className="text-red-600">{bkError}</p> : null}
+        {bkReport ? (
+          <div className="rounded border border-green-300 bg-green-50 p-3">
+            <p className="font-medium">Restore finished.</p>
+            <p>{Object.entries(bkReport.counts).filter(([, v]) => v).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(", ")}</p>
+            {bkReport.warnings.length ? (
+              <ul className="mt-2 list-disc pl-5 text-neutral-700">
+                {bkReport.warnings.slice(0, 50).map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Import from WordPress</h2>
         <p className="text-neutral-600">
