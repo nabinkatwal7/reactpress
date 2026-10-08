@@ -1,6 +1,4 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { listMedia } from "@/lib/media";
-import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
 import { PostForm } from "../post-form";
 
@@ -14,7 +12,6 @@ export default async function NewPostPage({ searchParams }: Props) {
       <PostForm
         mode="create"
         postType={type}
-        media={(await listMedia(await requireSiteId())).map((m) => ({ id: m.id, filename: m.filename }))}
       />
     </main>
   );

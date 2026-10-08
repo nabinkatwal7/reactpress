@@ -1,9 +1,63 @@
 "use client";
 
 import { BLOCK_TYPES, emptyBlock, type Block, type BlockType } from "@/lib/blocks";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { MediaPicker } from "@/components/admin/media-picker";
 
 const field = "w-full rounded border border-neutral-300 px-3 py-2 text-sm";
+
+function ImageBody({
+  block,
+  onChange,
+}: {
+  block: Extract<Block, { type: "image" }>;
+  onChange: (b: Block) => void;
+}) {
+  const [picking, setPicking] = useState(false);
+  return (
+    <div className="flex flex-col gap-2">
+      {block.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={block.url} alt={block.alt} className="max-h-48 w-fit" />
+      ) : null}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="rounded border border-neutral-300 px-3 py-2 text-sm"
+          onClick={() => setPicking(true)}
+        >
+          {block.url ? "Replace image" : "Choose from library"}
+        </button>
+        <input
+          className={field}
+          placeholder="…or paste an image URL (/media/… or https://…)"
+          value={block.url}
+          onChange={(e) => onChange({ ...block, url: e.target.value, mediaId: null })}
+        />
+      </div>
+      <input
+        className={field}
+        placeholder="Alt text"
+        value={block.alt}
+        onChange={(e) => onChange({ ...block, alt: e.target.value })}
+      />
+      <input
+        className={field}
+        placeholder="Caption (optional)"
+        value={block.text}
+        onChange={(e) => onChange({ ...block, text: e.target.value })}
+      />
+      <MediaPicker
+        open={picking}
+        onClose={() => setPicking(false)}
+        onSelect={(m) => {
+          onChange({ ...block, mediaId: m.id, url: m.url, alt: block.alt || m.alt });
+          setPicking(false);
+        }}
+      />
+    </div>
+  );
+}
 
 function BlockBody({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
   switch (block.type) {
@@ -70,36 +124,14 @@ function BlockBody({ block, onChange }: { block: Block; onChange: (b: Block) => 
         </div>
       );
     case "image":
-      return (
-        <div className="flex flex-col gap-2">
-          {block.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={block.url} alt={block.alt} className="max-h-48 w-fit" />
-          ) : null}
-          <input
-            className={field}
-            placeholder="Image URL (/media/… or https://…)"
-            value={block.url}
-            onChange={(e) => onChange({ ...block, url: e.target.value, mediaId: null })}
-          />
-          <input
-            className={field}
-            placeholder="Alt text"
-            value={block.alt}
-            onChange={(e) => onChange({ ...block, alt: e.target.value })}
-          />
-          <input
-            className={field}
-            placeholder="Caption (optional)"
-            value={block.text}
-            onChange={(e) => onChange({ ...block, text: e.target.value })}
-          />
-        </div>
-      );
+      return <ImageBody block={block} onChange={onChange} />;
     case "separator":
       return <hr className="border-neutral-300" />;
   }
 }
+
+let keyCounter = 0;
+const newKey = () => `b${keyCounter++}`;
 
 /** Controlled block editor: reads and writes the block JSON array. */
 export function BlockEditor({
@@ -109,30 +141,28 @@ export function BlockEditor({
   value: Block[];
   onChange: (blocks: Block[]) => void;
 }) {
-  // Stable keys so inputs keep focus while blocks are reordered.
-  const keys = useRef<string[]>([]);
-  const counter = useRef(0);
-  while (keys.current.length < value.length) keys.current.push(`b${counter.current++}`);
-  keys.current.length = value.length;
-
+  // Stable per-block keys so inputs keep focus while blocks are reordered.
+  // The editor is the only writer of `value`, so keys are kept in step with it here.
+  const [keys, setKeys] = useState<string[]>(() => value.map(newKey));
   const [adding, setAdding] = useState<BlockType>("paragraph");
 
   const update = (i: number, b: Block) => onChange(value.map((x, n) => (n === i ? b : x)));
   const remove = (i: number) => {
-    keys.current.splice(i, 1);
+    setKeys(keys.filter((_, n) => n !== i));
     onChange(value.filter((_, n) => n !== i));
   };
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= value.length) return;
-    const next = [...value];
-    [next[i], next[j]] = [next[j], next[i]];
-    const k = keys.current;
-    [k[i], k[j]] = [k[j], k[i]];
-    onChange(next);
+    const nextBlocks = [...value];
+    [nextBlocks[i], nextBlocks[j]] = [nextBlocks[j], nextBlocks[i]];
+    const nextKeys = [...keys];
+    [nextKeys[i], nextKeys[j]] = [nextKeys[j], nextKeys[i]];
+    setKeys(nextKeys);
+    onChange(nextBlocks);
   };
   const add = () => {
-    keys.current.push(`b${counter.current++}`);
+    setKeys([...keys, newKey()]);
     onChange([...value, emptyBlock(adding)]);
   };
 
@@ -140,7 +170,7 @@ export function BlockEditor({
     <div className="flex flex-col gap-3">
       {value.length === 0 ? <p className="text-sm text-neutral-500">No blocks yet.</p> : null}
       {value.map((block, i) => (
-        <div key={keys.current[i]} className="flex flex-col gap-2 border border-neutral-200 p-3">
+        <div key={keys[i] ?? i} className="flex flex-col gap-2 border border-neutral-200 p-3">
           <div className="flex items-center justify-between text-xs text-neutral-500">
             <span className="uppercase tracking-wide">{block.type}</span>
             <span className="flex gap-2 text-sm">

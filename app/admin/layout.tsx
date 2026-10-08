@@ -1,9 +1,9 @@
-import { signOut } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { getSettings } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
 import { Suspense } from "react";
+import { signOutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
 
 export const instant = false;
@@ -28,12 +28,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-neutral-500">{session.user?.email}</span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
+            <form action={signOutAction}>
               <button type="submit" className="text-neutral-600 hover:underline">
                 Sign out
               </button>

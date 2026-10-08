@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { listMedia } from "@/lib/media";
+import { mediaUrl } from "@/lib/media";
 import { getPost } from "@/lib/posts";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -29,7 +29,7 @@ export default async function EditPostPage({ params }: Props) {
       <PostForm
         mode="edit"
         postId={post.id}
-        media={(await listMedia(siteId)).map((m) => ({ id: m.id, filename: m.filename }))}
+        featuredUrl={post.featuredMedia ? mediaUrl(post.featuredMedia.path) : undefined}
         defaults={{
           title: post.title,
           slug: post.slug,

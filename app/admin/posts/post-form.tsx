@@ -3,6 +3,7 @@
 import { postFormSchema, type PostFormValues } from "@/lib/validations/post";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { MediaPicker } from "@/components/admin/media-picker";
 import { BlockEditor } from "@/components/admin/block-editor";
 import { toBlocks, type Block } from "@/lib/blocks";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,7 @@ type Props = {
   mode: "create" | "edit";
   postId?: string;
   postType?: string;
-  media?: { id: string; filename: string }[];
+  featuredUrl?: string;
   defaults?: {
     title: string;
     slug: string;
@@ -23,9 +24,13 @@ type Props = {
   };
 };
 
-export function PostForm({ mode, postId, postType, media = [], defaults }: Props) {
+export function PostForm({ mode, postId, postType, featuredUrl, defaults }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [featured, setFeatured] = useState<{ id: string; url: string } | null>(
+    defaults?.featuredMediaId && featuredUrl ? { id: defaults.featuredMediaId, url: featuredUrl } : null,
+  );
   const [blocks, setBlocks] = useState<Block[]>(() => {
     try {
       return toBlocks(JSON.parse(defaults?.contentText || "[]"));
@@ -37,6 +42,7 @@ export function PostForm({ mode, postId, postType, media = [], defaults }: Props
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),
@@ -144,20 +150,43 @@ export function PostForm({ mode, postId, postType, media = [], defaults }: Props
         </label>
       ) : null}
 
-      <label className="flex flex-col gap-1 text-sm">
-        Featured media
-        <select
-          className="rounded border border-neutral-300 px-3 py-2"
-          {...register("featuredMediaId")}
-        >
-          <option value="">None</option>
-          {media.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.filename}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex flex-col gap-2 text-sm">
+        Featured image
+        {featured ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={featured.url} alt="" className="max-h-40 w-fit" />
+        ) : null}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded border border-neutral-300 px-3 py-2"
+            onClick={() => setPicking(true)}
+          >
+            {featured ? "Replace" : "Choose image"}
+          </button>
+          {featured ? (
+            <button
+              type="button"
+              className="text-red-600"
+              onClick={() => {
+                setFeatured(null);
+                setValue("featuredMediaId", "");
+              }}
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+        <MediaPicker
+          open={picking}
+          onClose={() => setPicking(false)}
+          onSelect={(m) => {
+            setFeatured({ id: m.id, url: m.url });
+            setValue("featuredMediaId", m.id);
+            setPicking(false);
+          }}
+        />
+      </div>
 
       <div className="flex flex-col gap-1 text-sm">
         Content
