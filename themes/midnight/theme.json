@@ -1,0 +1,19 @@
+{
+  "name": "Midnight",
+  "slug": "midnight",
+  "version": "1.0.0",
+  "author": "ReactPress",
+  "description": "Dark, centred reading theme with a stacked header.",
+  "templates": ["index", "home", "single", "page", "archive", "search", "404"],
+  "parts": ["header", "footer"],
+  "screenshot": "assets/screenshot.svg",
+  "customizer": {
+    "settings": [
+      { "key": "logo", "label": "Logo", "type": "image" },
+      { "key": "primary_color", "label": "Accent color", "type": "color", "default": "#f59e0b" },
+      { "key": "background_color", "label": "Background color", "type": "color", "default": "#0f172a" },
+      { "key": "text_color", "label": "Text color", "type": "color", "default": "#e2e8f0" },
+      { "key": "show_tagline", "label": "Show tagline in header", "type": "checkbox", "default": true }
+    ]
+  }
+}

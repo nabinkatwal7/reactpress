@@ -28,6 +28,7 @@ export const NAV: Group[] = [
   {
     heading: "Appearance",
     items: [
+      { href: "/admin/themes", label: "Themes" },
       { href: "/admin/menus", label: "Menus" },
       { href: "/admin/widgets", label: "Widgets" },
     ],

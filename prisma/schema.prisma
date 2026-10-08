@@ -107,6 +107,7 @@ model Site {
   menuLocations MenuLocation[]
   widgetAreas   WidgetArea[]
   settings      Setting[]
+  themes        ThemeInstall[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -406,4 +407,17 @@ model Setting {
   value  Json
 
   @@unique([siteId, key])
+}
+
+/// A theme installed for a site. Code lives in /themes; exactly one install per site is active.
+model ThemeInstall {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug        String
+  version     String
+  active      Boolean  @default(false)
+  installedAt DateTime @default(now())
+
+  @@unique([siteId, slug])
 }

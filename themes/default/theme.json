@@ -1,0 +1,19 @@
+{
+  "name": "Classic",
+  "slug": "default",
+  "version": "1.0.0",
+  "author": "ReactPress",
+  "description": "Clean single-column theme with a header, footer and sidebar widgets.",
+  "templates": ["index", "home", "single", "page", "page-wide", "archive", "search", "404"],
+  "parts": ["header", "footer"],
+  "screenshot": "assets/screenshot.svg",
+  "customizer": {
+    "settings": [
+      { "key": "logo", "label": "Logo", "type": "image" },
+      { "key": "primary_color", "label": "Accent color", "type": "color", "default": "#1d4ed8" },
+      { "key": "background_color", "label": "Background color", "type": "color", "default": "#ffffff" },
+      { "key": "text_color", "label": "Text color", "type": "color", "default": "#171717" },
+      { "key": "show_tagline", "label": "Show tagline in header", "type": "checkbox", "default": true }
+    ]
+  }
+}
