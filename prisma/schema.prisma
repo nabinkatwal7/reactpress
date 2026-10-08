@@ -112,6 +112,7 @@ model Site {
   themeMods ThemeMods[]
   templateOverrides TemplateOverride[]
   plugins       PluginInstall[]
+  pluginData    PluginData[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -478,4 +479,17 @@ model PluginInstall {
   installedAt DateTime @default(now())
 
   @@unique([siteId, slug])
+}
+
+/// Key/value storage handed to a plugin through `api.store`. Always scoped to one site and one plugin.
+model PluginData {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plugin    String
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@unique([siteId, plugin, key])
 }

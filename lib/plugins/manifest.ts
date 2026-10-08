@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { customizerField } from "@/lib/theme/manifest";
+import { scanPluginDir } from "./scan";
 
 /**
  * Plugin package format. Author rules live in plugins/README.md; this file is the
@@ -40,7 +41,7 @@ export const pluginManifestSchema = z
 
 export type PluginManifest = z.infer<typeof pluginManifestSchema>;
 
-/** Check a plugin folder on disk: manifest valid, entry present, nothing escapes the folder. */
+/** Check a plugin folder on disk: manifest valid, entry present, source passes the sandbox scan. */
 export function validatePluginDir(
   dir: string,
 ): { ok: true; manifest: PluginManifest } | { ok: false; issues: string[] } {
@@ -66,6 +67,8 @@ export function validatePluginDir(
   if (path.basename(dir) !== m.slug) issues.push(`folder name "${path.basename(dir)}" must equal slug "${m.slug}"`);
   const entry = path.join(dir, "register.ts");
   if (!existsSync(entry) || !statSync(entry).isFile()) issues.push("register.ts (plugin entry) is missing");
+
+  if (!issues.length) issues.push(...scanPluginDir(dir));
 
   return issues.length ? { ok: false, issues } : { ok: true, manifest: m };
 }

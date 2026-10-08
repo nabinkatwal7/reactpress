@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { PLUGIN_REGISTRY } from "@/plugins/registry";
 import { reloadPlugins } from "./loader";
 import { PLUGINS_DIR, validatePluginDir, type PluginManifest } from "./manifest";
+import { removePluginFiles } from "./sandbox";
+import { removePluginData } from "./store";
 
 export type PluginListing = {
   manifest: PluginManifest;
@@ -53,6 +55,7 @@ export async function deletePlugin(siteId: string, slug: string) {
   if (!row) return false;
   if (row.active) throw new Error("Deactivate the plugin before deleting it");
   await prisma.pluginInstall.delete({ where: { id: row.id } });
+  await Promise.all([removePluginData(siteId, slug), removePluginFiles(siteId, slug)]);
   return true;
 }
 
