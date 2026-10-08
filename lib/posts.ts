@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { syncPublishJob } from "@/lib/jobs";
 import { createRevision } from "@/lib/revisions";
 import { setPostTerms } from "@/lib/terms";
+import { getMedia } from "@/lib/media";
 import { getPostType } from "@/lib/registry";
 import { slugify } from "@/lib/slug";
 import { withSiteId } from "@/lib/site";
@@ -47,6 +48,7 @@ export async function listPosts(siteId: string, opts?: { type?: string; status?:
     include: {
       author: { select: { id: true, name: true, email: true } },
       terms: { include: { term: true } },
+      featuredMedia: true,
     },
   });
 }
@@ -57,6 +59,7 @@ export async function getPost(siteId: string, id: string) {
     include: {
       author: { select: { id: true, name: true, email: true } },
       terms: { include: { term: true } },
+      featuredMedia: true,
     },
   });
 }
@@ -68,6 +71,9 @@ export async function createPost(
 ): Promise<Post> {
   const type = input.type ?? "post";
   if (!(await getPostType(siteId, type))) throw new Error("Unknown post type");
+  if (input.featuredMediaId && !(await getMedia(siteId, input.featuredMediaId))) {
+    throw new Error("Media not found");
+  }
   const slug = await uniqueSlug(siteId, input.slug ?? input.title);
   const status = input.status ?? "draft";
 
@@ -76,6 +82,7 @@ export async function createPost(
       siteId,
       authorId,
       type,
+      featuredMediaId: input.featuredMediaId ?? null,
       title: input.title,
       slug,
       status,
@@ -112,6 +119,14 @@ export async function updatePost(
       input.status === "scheduled" && input.scheduledAt ? new Date(input.scheduledAt) : null;
   } else if (input.scheduledAt !== undefined && existing.status === "scheduled" && input.scheduledAt) {
     data.scheduledAt = new Date(input.scheduledAt);
+  }
+  if (input.featuredMediaId !== undefined) {
+    if (input.featuredMediaId && !(await getMedia(siteId, input.featuredMediaId))) {
+      throw new Error("Media not found");
+    }
+    data.featuredMedia = input.featuredMediaId
+      ? { connect: { id: input.featuredMediaId } }
+      : { disconnect: true };
   }
   if (input.content !== undefined) {
     data.content = input.content as Prisma.InputJsonValue;

@@ -1,3 +1,5 @@
+import { listMedia } from "@/lib/media";
+import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
 import { PostForm } from "../post-form";
 
@@ -13,7 +15,11 @@ export default async function NewPostPage({ searchParams }: Props) {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Add post</h1>
       </div>
-      <PostForm mode="create" postType={type} />
+      <PostForm
+        mode="create"
+        postType={type}
+        media={(await listMedia(await requireSiteId())).map((m) => ({ id: m.id, filename: m.filename }))}
+      />
     </main>
   );
 }

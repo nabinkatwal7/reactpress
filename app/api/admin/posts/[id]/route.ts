@@ -44,9 +44,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
   const { id } = await ctx.params;
   const siteId = await requireSiteId();
-  const post = await updatePost(siteId, id, parsed.data);
-  if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ post });
+  try {
+    const post = await updatePost(siteId, id, parsed.data);
+    if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ post });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+  }
 }
 
 export async function DELETE(_request: Request, ctx: Ctx) {

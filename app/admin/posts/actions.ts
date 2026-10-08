@@ -55,7 +55,12 @@ export async function updatePostAction(id: string, input: unknown) {
   }
 
   const siteId = await requireSiteId();
-  const post = await updatePost(siteId, id, parsed.data);
+  let post;
+  try {
+    post = await updatePost(siteId, id, parsed.data);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   if (!post) return { error: "Not found" };
   revalidatePath("/admin/posts");
   revalidatePath(`/admin/posts/${id}`);

@@ -17,6 +17,7 @@ export const createPostSchema = z.object({
   content: postContentSchema.optional(),
   scheduledAt: z.iso.datetime().nullable().optional(),
   termIds: z.array(z.string().min(1)).optional(),
+  featuredMediaId: z.string().min(1).nullable().optional(),
 }).superRefine(needsSchedule);
 
 export const updatePostSchema = z.object({
@@ -26,6 +27,7 @@ export const updatePostSchema = z.object({
   content: postContentSchema.optional(),
   scheduledAt: z.iso.datetime().nullable().optional(),
   termIds: z.array(z.string().min(1)).optional(),
+  featuredMediaId: z.string().min(1).nullable().optional(),
 }).superRefine(needsSchedule);
 
 /** Client form schema — empty slug allowed, stripped before submit. */
@@ -35,6 +37,7 @@ export const postFormSchema = z.object({
   status: postStatusSchema,
   contentText: z.string(),
   scheduledAt: z.string().optional(),
+  featuredMediaId: z.string().optional(),
 });
 
 function needsSchedule(v: { status?: string; scheduledAt?: string | null }, ctx: z.RefinementCtx) {

@@ -10,16 +10,18 @@ type Props = {
   mode: "create" | "edit";
   postId?: string;
   postType?: string;
+  media?: { id: string; filename: string }[];
   defaults?: {
     title: string;
     slug: string;
     status: "draft" | "publish" | "scheduled" | "private" | "trash";
     contentText: string;
     scheduledAt?: string;
+    featuredMediaId?: string;
   };
 };
 
-export function PostForm({ mode, postId, postType, defaults }: Props) {
+export function PostForm({ mode, postId, postType, media = [], defaults }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const {
@@ -35,6 +37,7 @@ export function PostForm({ mode, postId, postType, defaults }: Props) {
       status: defaults?.status ?? "draft",
       contentText: defaults?.contentText ?? "",
       scheduledAt: defaults?.scheduledAt ?? "",
+      featuredMediaId: defaults?.featuredMediaId ?? "",
     },
   });
 
@@ -68,6 +71,7 @@ export function PostForm({ mode, postId, postType, defaults }: Props) {
       slug,
       status: values.status,
       content,
+      featuredMediaId: values.featuredMediaId || null,
       ...(mode === "create" && postType ? { type: postType } : {}),
       scheduledAt:
         values.status === "scheduled" && values.scheduledAt
@@ -143,6 +147,21 @@ export function PostForm({ mode, postId, postType, defaults }: Props) {
           />
         </label>
       ) : null}
+
+      <label className="flex flex-col gap-1 text-sm">
+        Featured media
+        <select
+          className="rounded border border-neutral-300 px-3 py-2"
+          {...register("featuredMediaId")}
+        >
+          <option value="">None</option>
+          {media.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.filename}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="flex flex-col gap-1 text-sm">
         Content (JSON array)

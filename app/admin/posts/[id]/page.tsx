@@ -1,3 +1,4 @@
+import { listMedia } from "@/lib/media";
 import { getPost } from "@/lib/posts";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -32,11 +33,13 @@ export default async function EditPostPage({ params }: Props) {
       <PostForm
         mode="edit"
         postId={post.id}
+        media={(await listMedia(siteId)).map((m) => ({ id: m.id, filename: m.filename }))}
         defaults={{
           title: post.title,
           slug: post.slug,
           status: post.status,
           contentText,
+          featuredMediaId: post.featuredMediaId ?? "",
           scheduledAt: post.scheduledAt ? toLocalInput(post.scheduledAt) : "",
         }}
       />
