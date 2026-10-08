@@ -60,8 +60,26 @@ async function seedRolesAndCaps() {
   }
 }
 
+async function seedDefaultSite() {
+  const existingDefault = await prisma.site.findFirst({
+    where: { isDefault: true },
+  });
+  if (existingDefault) return existingDefault;
+
+  return prisma.site.upsert({
+    where: { slug: "main" },
+    update: { name: "ReactPress", isDefault: true },
+    create: {
+      name: "ReactPress",
+      slug: "main",
+      isDefault: true,
+    },
+  });
+}
+
 async function main() {
   await seedRolesAndCaps();
+  const site = await seedDefaultSite();
 
   const adminRole = await prisma.role.findUniqueOrThrow({
     where: { key: "administrator" },
@@ -98,6 +116,7 @@ async function main() {
     },
   });
 
+  console.log(`Seeded default site ${site.slug} (${site.id})`);
   console.log("Seeded roles, capabilities, admin@reactpress.local / admin123");
   console.log("Seeded subscriber@reactpress.local / subscriber123 (no admin access)");
 }
