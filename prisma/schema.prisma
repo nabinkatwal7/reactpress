@@ -18,6 +18,7 @@ model User {
   role          Role?     @relation(fields: [roleId], references: [id])
   accounts      Account[]
   sessions      Session[]
+  posts         Post[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -90,8 +91,35 @@ model Site {
   slug      String   @unique
   domain    String?
   isDefault Boolean  @default(false)
+  posts     Post[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isDefault])
+}
+
+enum PostStatus {
+  draft
+  publish
+  private
+  trash
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  siteId      String
+  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  title       String
+  slug        String
+  status      PostStatus @default(draft)
+  content     Json       @default("[]")
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([siteId, slug])
+  @@index([siteId, status])
+  @@index([siteId, createdAt])
 }

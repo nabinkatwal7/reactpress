@@ -14,8 +14,12 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
           ReactPress Admin
         </Link>
         <nav className="flex flex-col gap-1 text-sm text-neutral-600">
-          <span className="text-neutral-400">Dashboard</span>
-          <span className="text-neutral-400">Posts</span>
+          <Link href="/admin" className="hover:text-neutral-900">
+            Dashboard
+          </Link>
+          <Link href="/admin/posts" className="hover:text-neutral-900">
+            Posts
+          </Link>
           <span className="text-neutral-400">Pages</span>
           <span className="text-neutral-400">Media</span>
           <span className="text-neutral-400">Settings</span>
