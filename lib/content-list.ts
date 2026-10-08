@@ -154,10 +154,10 @@ export async function runBulk(
 ): Promise<{ error: string } | { count: number }> {
   if (!(BULK_ACTIONS as readonly string[]).includes(action)) return { error: "Unknown action" };
   const act = action as BulkAction;
-  if (!(await can(userId, kind === "post" ? Cap.editPosts : Cap.editPages))) {
+  if (!(await can(userId, kind === "post" ? Cap.editPosts : Cap.editPages, siteId))) {
     return { error: "Not allowed" };
   }
-  if (bulkNeedsPublish(act) && !(await can(userId, Cap.publishPosts))) {
+  if (bulkNeedsPublish(act) && !(await can(userId, Cap.publishPosts, siteId))) {
     return { error: "Missing publish_posts capability" };
   }
   return { count: await bulkUpdate(siteId, kind, ids.slice(0, 200), act) };

@@ -84,13 +84,20 @@ async function validate(networkId: string, input: SiteInput, existing?: Site) {
   return { name, slug, domain };
 }
 
-/** Create a site in a network. Content tables fill lazily (settings, taxonomies, widget areas have defaults). */
-export async function createSite(networkId: string, input: SiteInput): Promise<Site> {
+/** Create a site in a network. `adminUserId` (the creator) becomes its administrator. Content tables fill lazily. */
+export async function createSite(networkId: string, input: SiteInput, adminUserId?: string): Promise<Site> {
   if (!(await prisma.network.findUnique({ where: { id: networkId }, select: { id: true } }))) {
     throw new Error("Network not found");
   }
   const data = await validate(networkId, input);
-  return prisma.site.create({ data: { ...data, networkId } });
+  const adminRole = adminUserId ? await prisma.role.findUnique({ where: { key: "administrator" } }) : null;
+  return prisma.site.create({
+    data: {
+      ...data,
+      networkId,
+      ...(adminUserId && adminRole ? { members: { create: { userId: adminUserId, roleId: adminRole.id } } } : {}),
+    },
+  });
 }
 
 export async function updateSite(siteId: string, input: SiteInput): Promise<Site> {

@@ -46,7 +46,7 @@ export async function submitComment(
     if (!parent) throw new CommentError("Parent comment not found");
   }
 
-  const trusted = meta.userId ? await can(meta.userId, Cap.moderateComments) : false;
+  const trusted = meta.userId ? await can(meta.userId, Cap.moderateComments, siteId) : false;
   const linkCount = input.content.match(LINK_RE)?.length ?? 0;
   const status: CommentStatus = trusted ? "approved" : linkCount > 2 ? "spam" : "pending";
 

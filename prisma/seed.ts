@@ -98,33 +98,38 @@ async function main() {
   });
 
   const adminHash = await bcrypt.hash("admin123", 10);
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: "admin@reactpress.local" },
-    update: { passwordHash: adminHash, name: "Admin", roleId: adminRole.id, isSuperAdmin: true },
+    update: { passwordHash: adminHash, name: "Admin", isSuperAdmin: true },
     create: {
       email: "admin@reactpress.local",
       name: "Admin",
       passwordHash: adminHash,
-      roleId: adminRole.id,
       isSuperAdmin: true,
     },
   });
 
   const subHash = await bcrypt.hash("subscriber123", 10);
-  await prisma.user.upsert({
+  const subscriber = await prisma.user.upsert({
     where: { email: "subscriber@reactpress.local" },
-    update: {
-      passwordHash: subHash,
-      name: "Subscriber",
-      roleId: subscriberRole.id,
-    },
+    update: { passwordHash: subHash, name: "Subscriber" },
     create: {
       email: "subscriber@reactpress.local",
       name: "Subscriber",
       passwordHash: subHash,
-      roleId: subscriberRole.id,
     },
   });
+
+  for (const [user, role] of [
+    [admin, adminRole],
+    [subscriber, subscriberRole],
+  ] as const) {
+    await prisma.siteMember.upsert({
+      where: { siteId_userId: { siteId: site.id, userId: user.id } },
+      update: { roleId: role.id },
+      create: { siteId: site.id, userId: user.id, roleId: role.id },
+    });
+  }
 
   console.log(`Seeded default site ${site.slug} (${site.id})`);
   console.log("Seeded roles, capabilities, admin@reactpress.local / admin123");

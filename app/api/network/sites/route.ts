@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const body = await parseBody(request, siteSchema);
   if ("error" in body) return body.error;
   try {
-    const site = await createSite((await getDefaultNetwork()).id, body.data);
+    const site = await createSite((await getDefaultNetwork()).id, body.data, gate.userId);
     return NextResponse.json({ site }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireSiteId } from "@/lib/site";
 
 /** Capability keys used across ReactPress (WordPress-style). */
 export const Cap = {
@@ -21,25 +22,22 @@ function userIdOf(user: UserLike): string | null {
   return typeof user === "string" ? user : user.id;
 }
 
-/** True if the user has the given capability via their role. */
-export async function can(user: UserLike, capability: CapKey | string): Promise<boolean> {
+/**
+ * True if the user has the capability on a site. Super admins have every capability everywhere;
+ * everyone else gets the capabilities of their role on that site (SiteMember). `siteId` defaults
+ * to the site serving the current request.
+ */
+export async function can(user: UserLike, capability: CapKey | string, siteId?: string): Promise<boolean> {
   const userId = userIdOf(user);
   if (!userId) return false;
 
-  const row = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      role: {
-        select: {
-          capabilities: {
-            where: { capability: { key: capability } },
-            select: { capabilityId: true },
-            take: 1,
-          },
-        },
-      },
-    },
-  });
+  const row = await prisma.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+  if (!row) return false;
+  if (row.isSuperAdmin) return true;
 
-  return (row?.role?.capabilities.length ?? 0) > 0;
+  const member = await prisma.siteMember.findUnique({
+    where: { siteId_userId: { siteId: siteId ?? (await requireSiteId()), userId } },
+    select: { role: { select: { capabilities: { where: { capability: { key: capability } }, select: { capabilityId: true }, take: 1 } } } },
+  });
+  return (member?.role.capabilities.length ?? 0) > 0;
 }

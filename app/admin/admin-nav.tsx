@@ -39,6 +39,7 @@ export const NAV: Group[] = [
   {
     heading: "System",
     items: [
+      { href: "/admin/users", label: "Users" },
       { href: "/admin/plugins", label: "Plugins" },
       { href: "/admin/settings", label: "Settings" },
     ],

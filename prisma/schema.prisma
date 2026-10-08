@@ -14,8 +14,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  roleId        String?
-  role          Role?     @relation(fields: [roleId], references: [id])
+  memberships   SiteMember[]
   /// Can manage the whole network (sites, users, network themes/plugins).
   isSuperAdmin  Boolean   @default(false)
   accounts      Account[]
@@ -67,7 +66,7 @@ model Role {
   key          String           @unique
   name         String
   capabilities RoleCapability[]
-  users        User[]
+  members      SiteMember[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 }
@@ -132,6 +131,7 @@ model Site {
   templateOverrides TemplateOverride[]
   plugins       PluginInstall[]
   pluginData    PluginData[]
+  members       SiteMember[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -511,4 +511,18 @@ model PluginData {
   updatedAt DateTime @updatedAt
 
   @@unique([siteId, plugin, key])
+}
+
+/// A user's role on one site. Users are shared across the network; what they can do is decided per site.
+model SiteMember {
+  siteId    String
+  userId    String
+  roleId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([siteId, userId])
+  @@index([userId])
 }
