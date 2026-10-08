@@ -16,6 +16,25 @@ export function ToolsPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
+  const [wpFile, setWpFile] = useState<File | null>(null);
+  const [wpMedia, setWpMedia] = useState(false);
+  const [wpBusy, setWpBusy] = useState(false);
+  const [wpError, setWpError] = useState<string | null>(null);
+  const [wpReport, setWpReport] = useState<Report | null>(null);
+
+  async function runWordPress(e: React.FormEvent) {
+    e.preventDefault();
+    if (!wpFile) return;
+    setWpBusy(true);
+    setWpError(null);
+    setWpReport(null);
+    const res = await fetch(`/api/admin/import/wordpress${wpMedia ? "?media=1" : ""}`, { method: "POST", headers: { "Content-Type": "application/xml" }, body: await wpFile.text() });
+    const json = (await res.json().catch(() => null)) as { error?: string; report?: Report } | null;
+    setWpBusy(false);
+    if (!res.ok) return setWpError(json?.error ?? "Import failed");
+    setWpReport(json!.report!);
+    router.refresh();
+  }
 
   async function runImport(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +117,39 @@ export function ToolsPanel() {
                   <li key={i}>{w}</li>
                 ))}
                 {report.warnings.length > 50 ? <li>and {report.warnings.length - 50} more</li> : null}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Import from WordPress</h2>
+        <p className="text-neutral-600">
+          In WordPress, go to Tools &rarr; Export, choose &ldquo;All content&rdquo; and download the file. Posts, pages, categories and tags come across and are
+          added to this site; nothing here is deleted. Comments, users, menus and plugin content are not imported.
+        </p>
+        <form onSubmit={runWordPress} className="flex flex-col gap-3">
+          <input type="file" accept=".xml,text/xml,application/xml" onChange={(e) => setWpFile(e.target.files?.[0] ?? null)} />
+          <label className="flex items-start gap-2">
+            <input type="checkbox" checked={wpMedia} onChange={(e) => setWpMedia(e.target.checked)} className="mt-1" />
+            <span>Download images and files from the old site into the media library (it has to be reachable from this server). Otherwise images keep pointing at the old site.</span>
+          </label>
+          <div>
+            <button type="submit" disabled={!wpFile || wpBusy} className={`${btn} bg-neutral-900 text-white`}>
+              {wpBusy ? "Importing…" : "Import WordPress file"}
+            </button>
+          </div>
+        </form>
+        {wpError ? <p className="text-red-600">{wpError}</p> : null}
+        {wpReport ? (
+          <div className="rounded border border-green-300 bg-green-50 p-3">
+            <p className="font-medium">Import finished.</p>
+            <p>{Object.entries(wpReport.counts).filter(([, v]) => v).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(", ") || "Nothing to import."}</p>
+            {wpReport.warnings.length ? (
+              <ul className="mt-2 list-disc pl-5 text-neutral-700">
+                {wpReport.warnings.slice(0, 50).map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
               </ul>
             ) : null}
           </div>

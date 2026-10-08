@@ -277,6 +277,20 @@ async function exportCmd({ flags }) {
   } else process.stdout.write(json);
 }
 
+async function importWordPressCmd({ positionals, flags }) {
+  const file = need(positionals[0], "reactpress import-wordpress <export.xml> [--media]");
+  const xml = file === "-" ? await readStdin() : await readFile(file, "utf8");
+  const { url, token } = await loadConfig();
+  if (!url || !token) throw new Error("Not logged in. Run: reactpress login <site-url>");
+  // the body is XML, not JSON, so this one bypasses the JSON helper
+  const res = await fetch(`${url}/api/admin/import/wordpress${flags.media ? "?media=1" : ""}`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/xml" }, body: xml });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
+  const { report } = json;
+  console.log(`Imported from WordPress: ${Object.entries(report.counts).filter(([, v]) => v).map(([k, v]) => `${v} ${k}`).join(", ") || "nothing"}`);
+  for (const w of report.warnings) console.error(`warning: ${w}`);
+}
+
 async function importCmd({ positionals, flags }) {
   const file = need(positionals[0], "reactpress import <file.json> [--mode merge|replace] [--yes]");
   const mode = flags.mode === "replace" ? "replace" : "merge";
@@ -302,5 +316,6 @@ export const COMMANDS = {
   package: { run: packageCmd, help: "package <folder> [--out dir] [--url-base u]       Zip a theme/plugin and print its registry entry" },
   scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
   export: { run: exportCmd, help: "export [--media] [--out file.json]                Export the site as ReactPress JSON" },
+  "import-wordpress": { run: importWordPressCmd, help: "import-wordpress <export.xml> [--media]                 Import a WordPress export (WXR) into this site" },
   import: { run: importCmd, help: "import <file.json> [--mode merge|replace] [--yes]   Import a ReactPress JSON export" },
 };
