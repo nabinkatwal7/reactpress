@@ -97,6 +97,8 @@ model Site {
   revisions Revision[]
   jobs      Job[]
   terms     Term[]
+  postTypes PostType[]
+  taxonomies Taxonomy[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -117,6 +119,7 @@ model Post {
   site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
   authorId    String?
   author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  type        String     @default("post")
   title       String
   slug        String
   status      PostStatus @default(draft)
@@ -129,6 +132,7 @@ model Post {
 
   @@unique([siteId, slug])
   @@index([siteId, status])
+  @@index([siteId, type])
   @@index([siteId, createdAt])
 }
 
@@ -228,4 +232,34 @@ model PostTerm {
 
   @@id([postId, termId])
   @@index([termId])
+}
+
+/// DB-registered custom post type. Code-registered types live in lib/registry.ts.
+model PostType {
+  id         String   @id @default(cuid())
+  siteId     String
+  site       Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  key        String
+  label      String
+  singular   String
+  taxonomies String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([siteId, key])
+}
+
+/// DB-registered custom taxonomy. Terms reference it by key.
+model Taxonomy {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  key          String
+  label        String
+  singular     String
+  hierarchical Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([siteId, key])
 }

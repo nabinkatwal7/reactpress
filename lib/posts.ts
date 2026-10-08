@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { syncPublishJob } from "@/lib/jobs";
 import { createRevision } from "@/lib/revisions";
 import { setPostTerms } from "@/lib/terms";
+import { getPostType } from "@/lib/registry";
 import { slugify } from "@/lib/slug";
 import { withSiteId } from "@/lib/site";
 import type { CreatePostInput, UpdatePostInput } from "@/lib/validations/post";
@@ -24,9 +25,10 @@ async function uniqueSlug(siteId: string, base: string, excludeId?: string): Pro
   }
 }
 
-export async function listPosts(siteId: string, opts?: { status?: PostStatus; taxonomy?: string; term?: string }) {
+export async function listPosts(siteId: string, opts?: { type?: string; status?: PostStatus; taxonomy?: string; term?: string }) {
   return prisma.post.findMany({
     where: withSiteId(siteId, {
+      type: opts?.type ?? "post",
       ...(opts?.status ? { status: opts.status } : {}),
       ...(opts?.term
         ? {
@@ -64,6 +66,8 @@ export async function createPost(
   authorId: string,
   input: CreatePostInput,
 ): Promise<Post> {
+  const type = input.type ?? "post";
+  if (!(await getPostType(siteId, type))) throw new Error("Unknown post type");
   const slug = await uniqueSlug(siteId, input.slug ?? input.title);
   const status = input.status ?? "draft";
 
@@ -71,6 +75,7 @@ export async function createPost(
     data: {
       siteId,
       authorId,
+      type,
       title: input.title,
       slug,
       status,

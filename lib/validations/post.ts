@@ -10,6 +10,7 @@ const slugField = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase kebab-case");
 
 export const createPostSchema = z.object({
+  type: z.string().trim().min(1).optional(),
   title: z.string().trim().min(1, "Title is required"),
   slug: slugField.optional(),
   status: postStatusSchema.default("draft"),

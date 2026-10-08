@@ -1,14 +1,15 @@
 "use client";
 
+import { postFormSchema, type PostFormValues } from "@/lib/validations/post";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { postFormSchema, type PostFormValues } from "@/lib/validations/post";
 import { createPostAction, updatePostAction } from "./actions";
 
 type Props = {
   mode: "create" | "edit";
   postId?: string;
+  postType?: string;
   defaults?: {
     title: string;
     slug: string;
@@ -18,7 +19,7 @@ type Props = {
   };
 };
 
-export function PostForm({ mode, postId, defaults }: Props) {
+export function PostForm({ mode, postId, postType, defaults }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const {
@@ -67,6 +68,7 @@ export function PostForm({ mode, postId, defaults }: Props) {
       slug,
       status: values.status,
       content,
+      ...(mode === "create" && postType ? { type: postType } : {}),
       scheduledAt:
         values.status === "scheduled" && values.scheduledAt
           ? new Date(values.scheduledAt).toISOString()
@@ -89,7 +91,11 @@ export function PostForm({ mode, postId, defaults }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex max-w-xl flex-col gap-4" noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex max-w-xl flex-col gap-4"
+      noValidate
+    >
       <label className="flex flex-col gap-1 text-sm">
         Title
         <input
@@ -148,7 +154,9 @@ export function PostForm({ mode, postId, defaults }: Props) {
         />
       </label>
 
-      {serverError ? <p className="text-sm text-red-600">{serverError}</p> : null}
+      {serverError ? (
+        <p className="text-sm text-red-600">{serverError}</p>
+      ) : null}
       {saved ? <p className="text-sm text-green-700">Saved</p> : null}
 
       <button
@@ -156,7 +164,11 @@ export function PostForm({ mode, postId, defaults }: Props) {
         disabled={isSubmitting}
         className="w-fit rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
       >
-        {isSubmitting ? "Saving…" : mode === "create" ? "Create post" : "Update post"}
+        {isSubmitting
+          ? "Saving…"
+          : mode === "create"
+            ? "Create post"
+            : "Update post"}
       </button>
     </form>
   );

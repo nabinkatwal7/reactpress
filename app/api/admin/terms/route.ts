@@ -1,5 +1,6 @@
 import { Cap } from "@/lib/caps";
 import { isApiError, requireApiAdmin } from "@/lib/require-api-admin";
+import { getTaxonomy } from "@/lib/registry";
 import { requireSiteId } from "@/lib/site";
 import { createTerm, listTerms } from "@/lib/terms";
 import { createTermSchema } from "@/lib/validations/term";
@@ -32,8 +33,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const siteId = await requireSiteId();
+  if (!(await getTaxonomy(siteId, parsed.data.taxonomy))) {
+    return NextResponse.json({ error: "Unknown taxonomy" }, { status: 400 });
+  }
+
   try {
-    const term = await createTerm(await requireSiteId(), parsed.data);
+    const term = await createTerm(siteId, parsed.data);
     return NextResponse.json({ term }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

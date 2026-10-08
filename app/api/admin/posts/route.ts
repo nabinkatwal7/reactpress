@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const posts = await listPosts(siteId, {
     status: status?.success ? status.data : undefined,
+    type: sp.get("type") ?? undefined,
     taxonomy: sp.get("taxonomy") ?? undefined,
     term: sp.get("term") ?? undefined,
   });
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
   }
 
   const siteId = await requireSiteId();
-  const post = await createPost(siteId, gate.userId, parsed.data);
-  return NextResponse.json({ post }, { status: 201 });
+  try {
+    const post = await createPost(siteId, gate.userId, parsed.data);
+    return NextResponse.json({ post }, { status: 201 });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+  }
 }

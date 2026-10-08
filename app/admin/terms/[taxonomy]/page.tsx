@@ -1,4 +1,4 @@
-import { BUILTIN_TAXONOMIES, isTaxonomy } from "@/lib/taxonomies";
+import { getTaxonomy } from "@/lib/registry";
 import { requireSiteId } from "@/lib/site";
 import { listTerms } from "@/lib/terms";
 import Link from "next/link";
@@ -11,9 +11,10 @@ type Props = { params: Promise<{ taxonomy: string }> };
 
 export default async function TermsPage({ params }: Props) {
   const { taxonomy } = await params;
-  if (!isTaxonomy(taxonomy)) notFound();
-  const meta = BUILTIN_TAXONOMIES[taxonomy];
-  const terms = await listTerms(await requireSiteId(), taxonomy);
+  const siteId = await requireSiteId();
+  const meta = await getTaxonomy(siteId, taxonomy);
+  if (!meta) notFound();
+  const terms = await listTerms(siteId, taxonomy);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">

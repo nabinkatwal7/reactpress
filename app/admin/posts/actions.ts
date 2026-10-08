@@ -31,7 +31,12 @@ export async function createPostAction(input: unknown) {
   }
 
   const siteId = await requireSiteId();
-  const post = await createPost(siteId, userId, parsed.data);
+  let post;
+  try {
+    post = await createPost(siteId, userId, parsed.data);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   revalidatePath("/admin/posts");
   redirect(`/admin/posts/${post.id}`);
 }

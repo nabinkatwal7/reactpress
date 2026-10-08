@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { Cap, can } from "@/lib/caps";
 import { requireSiteId } from "@/lib/site";
-import { isTaxonomy } from "@/lib/taxonomies";
+import { getTaxonomy } from "@/lib/registry";
 import { createTerm, deleteTerm } from "@/lib/terms";
 import { createTermSchema } from "@/lib/validations/term";
 import { revalidatePath } from "next/cache";
@@ -17,14 +17,15 @@ async function requireEdit(taxonomy: string) {
 
 export async function createTermAction(taxonomy: string, formData: FormData) {
   await requireEdit(taxonomy);
-  if (!isTaxonomy(taxonomy)) return;
+  const siteId = await requireSiteId();
+  if (!(await getTaxonomy(siteId, taxonomy))) return;
   const parsed = createTermSchema.safeParse({
     taxonomy,
     name: formData.get("name"),
     description: formData.get("description") || undefined,
   });
   if (!parsed.success) return;
-  await createTerm(await requireSiteId(), parsed.data);
+  await createTerm(siteId, parsed.data);
   revalidatePath(`/admin/terms/${taxonomy}`);
 }
 

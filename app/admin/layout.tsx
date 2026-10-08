@@ -26,6 +26,9 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
           <Link href="/admin/terms/tag" className="hover:text-neutral-900">
             Tags
           </Link>
+          <Link href="/admin/types" className="hover:text-neutral-900">
+            Content types
+          </Link>
           <Link href="/admin/pages" className="hover:text-neutral-900">
             Pages
           </Link>
