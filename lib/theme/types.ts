@@ -15,6 +15,8 @@ export type ThemeContext = {
   /** Site-edited content for template parts (block JSON), when the site has customised one. */
   partContent: Partial<Record<PartName, Block[]>>;
   postBase: string;
+  /** "" normally; "/slug" when the site is served under a path prefix. Prefix hard-coded internal links with it (or use SiteLink). */
+  basePath: string;
   /** True when rendering unpublished customizer changes for an admin. */
   preview: boolean;
 };

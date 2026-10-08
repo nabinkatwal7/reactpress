@@ -1,7 +1,9 @@
 import type { ReactElement } from "react";
 import { toBlocks } from "@/lib/blocks";
+import { withBase } from "@/lib/network/resolve";
 import { applyFilters } from "@/lib/hooks";
 import { ensurePluginsLoaded } from "@/lib/plugins/loader";
+import type { ResolvedMenuItem } from "@/lib/menus";
 import { getTaxonomy } from "@/lib/registry";
 import { searchContent } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
@@ -95,8 +97,37 @@ async function filterEntry(siteId: string, kind: "post" | "page", entry: unknown
   };
 }
 
+type WithUrl = { url: string };
+type WithTerms = { terms: WithUrl[] };
+
+/**
+ * Site-served-under-a-path support: URLs the data layer builds ("/blog/x", "/category/y") get the
+ * site's `/slug` prefix here, once, so every theme and component gets correct links.
+ */
+function prefixUrls(base: string, props: Record<string, unknown>): Record<string, unknown> {
+  if (!base) return props;
+  const out = { ...props };
+  const fix = <T extends WithUrl>(items: T[]) => items.map((i) => ({ ...i, url: withBase(base, i.url) }));
+  if (Array.isArray(props.posts)) out.posts = (props.posts as (WithUrl & WithTerms)[]).map((p) => ({ ...p, url: withBase(base, p.url), terms: fix(p.terms) }));
+  if (Array.isArray(props.results)) out.results = fix(props.results as WithUrl[]);
+  if (props.post && typeof props.post === "object") {
+    const post = props.post as WithTerms;
+    if (Array.isArray(post.terms)) out.post = { ...post, terms: fix(post.terms) };
+  }
+  return out;
+}
+
+function prefixMenu(base: string, items: ResolvedMenuItem[]): ResolvedMenuItem[] {
+  return base ? items.map((i) => ({ ...i, href: withBase(base, i.href), children: prefixMenu(base, i.children) })) : items;
+}
+
 /** Resolve the template through the hierarchy and render it inside the theme frame. */
-async function render(loaded: Loaded, info: HierarchyInfo, props: Record<string, unknown>) {
+async function render(loaded: Loaded, info: HierarchyInfo, rawProps: Record<string, unknown>) {
+  const base = loaded.ctx.basePath;
+  const props = prefixUrls(base, rawProps);
+  if (base) {
+    loaded.ctx = { ...loaded.ctx, menus: { primary: prefixMenu(base, loaded.ctx.menus.primary), footer: prefixMenu(base, loaded.ctx.menus.footer) } };
+  }
   const available = new Set(loaded.manifest.templates.filter((n) => loaded.module.templates[n]));
   const filtered = { ...props };
   if ("post" in props) filtered.post = await filterEntry(loaded.siteId, "post", props.post);

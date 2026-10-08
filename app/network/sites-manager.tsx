@@ -143,6 +143,9 @@ export function SitesManager({ sites }: { sites: SiteRow[] }) {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <a href={`/${s.slug}/admin`} className={btn}>
+                    Manage
+                  </a>
                   <button type="button" className={btn} onClick={() => setEditing(s.id)}>
                     Edit
                   </button>

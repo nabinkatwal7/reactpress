@@ -75,6 +75,12 @@ export async function createNetworkUser(input: { email: string; name?: string; p
   });
 }
 
+/** Sites a user can work on: every site for super admins, otherwise the ones they are a member of. */
+export async function sitesForUser(userId: string, isSuper: boolean) {
+  const where = isSuper ? {} : { members: { some: { userId } } };
+  return prisma.site.findMany({ where, select: { slug: true, name: true }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
+}
+
 /** Roles a user holds across sites, for the network users table. */
 export async function membershipsByUser() {
   const rows = await prisma.siteMember.findMany({

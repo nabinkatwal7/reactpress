@@ -2,22 +2,28 @@ import { activePluginPages } from "@/lib/plugins/plugins";
 import { isSuperAdmin } from "@/lib/network/users";
 import { requireAdmin } from "@/lib/require-admin";
 import { getSettings } from "@/lib/settings";
-import { requireSiteId } from "@/lib/site";
+import { resolveSite } from "@/lib/site";
+import { sitesForUser } from "@/lib/network/members";
 import Link from "next/link";
 import { Suspense } from "react";
 import { signOutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
+import { SiteSwitcher } from "./site-switcher";
 
 export const instant = false;
 
 async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
-  const siteId = await requireSiteId();
+  const site = await resolveSite();
+  const siteId = site.id;
   const [settings, pluginItems, superAdmin] = await Promise.all([
     getSettings(siteId),
     activePluginPages(siteId),
     isSuperAdmin(session.user?.id),
   ]);
+  const switchable = await sitesForUser(session.user!.id!, superAdmin);
+  // where "View site" goes: the custom domain, the /slug path, or the root for the main site
+  const publicUrl = site.domain ? `//${site.domain}` : site.isDefault ? "/" : `/${site.slug}`;
 
   return (
     <div className="flex min-h-full flex-1">
@@ -30,10 +36,11 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-8 py-3 text-sm">
-          <Link href="/" target="_blank" className="font-medium hover:underline">
+          <Link href={publicUrl} target="_blank" className="font-medium hover:underline">
             {settings.site_title} ↗
           </Link>
           <div className="flex items-center gap-4">
+            <SiteSwitcher sites={switchable} currentSlug={site.slug} />
             {superAdmin ? (
               <Link href="/network" className="text-neutral-600 hover:underline">
                 Network admin

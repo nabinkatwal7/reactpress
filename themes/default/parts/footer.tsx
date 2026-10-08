@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink } from "@/components/public/site-link";
 import { ContentBlocks } from "@/components/content-blocks";
 import { MenuList } from "@/components/public/parts";
 import type { PartProps } from "@/lib/theme/types";
@@ -12,9 +12,9 @@ export default function Footer({ ctx }: PartProps) {
         {custom?.length ? <ContentBlocks content={custom} /> : null}
         <p className="opacity-60">
           © {new Date().getFullYear()} {ctx.site.title} ·{" "}
-          <Link href="/admin" className="hover:underline">
+          <SiteLink href="/admin" className="hover:underline">
             Admin
-          </Link>
+          </SiteLink>
         </p>
       </div>
     </footer>

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings, postPath } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
 import { getAreaWidgets } from "@/lib/widgets";
-import Link from "next/link";
+import { SiteLink } from "@/components/public/site-link";
 
 type Settings = { title?: string; body?: string; count?: number };
 
@@ -43,9 +43,9 @@ async function RecentPosts({ siteId, count }: { siteId: string; count: number })
     <ul className="flex flex-col gap-1">
       {posts.map((p) => (
         <li key={p.id}>
-          <Link href={postPath(settings, p.slug)} className="underline">
+          <SiteLink href={postPath(settings, p.slug)} className="underline">
             {p.title}
-          </Link>
+          </SiteLink>
         </li>
       ))}
     </ul>

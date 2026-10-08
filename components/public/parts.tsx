@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SiteLink } from "@/components/public/site-link";
+import { siteBasePath } from "@/lib/site";
 import { CommentForm } from "@/components/public/comment-form";
 import type { ResolvedMenuItem } from "@/lib/menus";
 import type { CommentPublic, Paging, PostSummary } from "@/lib/theme/types";
@@ -59,15 +61,16 @@ export function PostList({ posts, empty = "Nothing here yet." }: { posts: PostSu
 
 /** Previous/next links using `?page=`. */
 export function Pager({ paging, basePath }: { paging: Paging; basePath: string }) {
+  // links go through SiteLink so they keep the site's /slug prefix
   if (paging.pages <= 1) return null;
   const href = (p: number) => (p > 1 ? `${basePath}?page=${p}` : basePath);
   return (
     <nav className="flex items-center justify-between text-sm" aria-label="Pagination">
-      {paging.page > 1 ? <Link href={href(paging.page - 1)}>← Newer</Link> : <span />}
+      {paging.page > 1 ? <SiteLink href={href(paging.page - 1)}>← Newer</SiteLink> : <span />}
       <span className="opacity-60">
         Page {paging.page} of {paging.pages}
       </span>
-      {paging.page < paging.pages ? <Link href={href(paging.page + 1)}>Older →</Link> : <span />}
+      {paging.page < paging.pages ? <SiteLink href={href(paging.page + 1)}>Older →</SiteLink> : <span />}
     </nav>
   );
 }
@@ -89,9 +92,10 @@ export function CommentsSection({ postId, comments }: { postId: string; comments
   );
 }
 
-export function SearchForm({ defaultValue = "" }: { defaultValue?: string }) {
+export async function SearchForm({ defaultValue = "" }: { defaultValue?: string }) {
+  const base = await siteBasePath();
   return (
-    <form action="/search" className="flex gap-2 text-sm" role="search">
+    <form action={`${base}/search`} className="flex gap-2 text-sm" role="search">
       <input
         name="q"
         defaultValue={defaultValue}

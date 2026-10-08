@@ -39,7 +39,11 @@ themes/<slug>/
    default case.
 9. **Assets** live only in `assets/` and are referenced as `/theme-assets/<slug>/<file>`.
    No assets outside that folder, no path tricks (`..`).
-10. **No server-only secrets, no network calls** in templates. Data arrives through props.
+10. **Internal links.** A site can be served under a path prefix (`/shop/...`). Use
+    `<SiteLink href="/search">` from `components/public/site-link` (or prefix with `ctx.basePath`)
+    for links you write yourself; URLs that arrive in props (menus, posts, terms, search results)
+    are already prefixed. Never hard-code `/search`, `/admin` or `/`.
+11. **No server-only secrets, no network calls** in templates. Data arrives through props.
 
 ## Checking a theme
 

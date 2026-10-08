@@ -1,5 +1,6 @@
 import { getMenuForLocation, getResolvedMenu } from "@/lib/menus";
 import { getSettings } from "@/lib/settings";
+import { siteBasePath } from "@/lib/site";
 import { getPublishedMods, type CustomizerValues } from "./customizer";
 import type { ThemeManifest } from "./manifest";
 import { resolveMods } from "./mods";
@@ -32,6 +33,7 @@ export async function buildThemeContext(
     menus: { primary, footer },
     partContent,
     postBase: settings.post_base,
+    basePath: await siteBasePath(),
     preview: draft !== null,
   };
 }

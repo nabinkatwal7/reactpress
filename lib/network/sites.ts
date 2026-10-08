@@ -5,6 +5,7 @@ import { STORAGE_ROOT, absolutePath } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { RESERVED_KEYS } from "@/lib/registry";
 import { getSettings } from "@/lib/settings";
+import { invalidateSiteIndex } from "./site-index";
 
 /**
  * Networks and the sites under them. A network groups sites that share users; each site has its
@@ -91,13 +92,15 @@ export async function createSite(networkId: string, input: SiteInput, adminUserI
   }
   const data = await validate(networkId, input);
   const adminRole = adminUserId ? await prisma.role.findUnique({ where: { key: "administrator" } }) : null;
-  return prisma.site.create({
+  const created = await prisma.site.create({
     data: {
       ...data,
       networkId,
       ...(adminUserId && adminRole ? { members: { create: { userId: adminUserId, roleId: adminRole.id } } } : {}),
     },
   });
+  invalidateSiteIndex();
+  return created;
 }
 
 export async function updateSite(siteId: string, input: SiteInput): Promise<Site> {
@@ -105,7 +108,9 @@ export async function updateSite(siteId: string, input: SiteInput): Promise<Site
   if (!site) throw new Error("Site not found");
   // the default site keeps its slug: it is the fallback everything else resolves to
   const data = await validate(site.networkId, site.isDefault ? { ...input, slug: site.slug } : input, site);
-  return prisma.site.update({ where: { id: siteId }, data });
+  const updated = await prisma.site.update({ where: { id: siteId }, data });
+  invalidateSiteIndex();
+  return updated;
 }
 
 /** Delete a site and everything under it (rows cascade; media and plugin files are removed from disk). */
@@ -116,6 +121,7 @@ export async function deleteSite(siteId: string): Promise<boolean> {
 
   const media = await prisma.media.findMany({ where: { siteId }, select: { path: true } });
   await prisma.site.delete({ where: { id: siteId } });
+  invalidateSiteIndex();
   await Promise.all(media.map((m) => unlink(absolutePath(m.path)).catch(() => {})));
   await rm(path.join(STORAGE_ROOT, "plugin-data", siteId), { recursive: true, force: true });
   return true;

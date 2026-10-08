@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink } from "@/components/public/site-link";
 import { ContentBlocks } from "@/components/content-blocks";
 import { MenuList } from "@/components/public/parts";
 import type { PartProps } from "@/lib/theme/types";
@@ -14,7 +14,7 @@ export default function Header({ ctx }: PartProps) {
         </div>
       ) : null}
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="flex items-center gap-3">
+        <SiteLink href="/" className="flex items-center gap-3">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logo} alt={ctx.site.title} className="h-10 w-auto" />
@@ -26,12 +26,12 @@ export default function Header({ ctx }: PartProps) {
           {ctx.mods.show_tagline && ctx.site.tagline ? (
             <span className="hidden text-sm opacity-60 sm:inline">{ctx.site.tagline}</span>
           ) : null}
-        </Link>
+        </SiteLink>
         <nav aria-label="Primary" className="flex items-center gap-6 text-sm">
           <MenuList items={ctx.menus.primary} />
-          <Link href="/search" className="hover:underline">
+          <SiteLink href="/search" className="hover:underline">
             Search
-          </Link>
+          </SiteLink>
         </nav>
       </div>
     </header>
