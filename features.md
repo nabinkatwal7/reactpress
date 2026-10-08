@@ -177,7 +177,7 @@ step 19, ✅ Build admin chrome (sidebar, top bar, screen header) matching CMS p
 step 20, ✅ Build block editor that reads/writes block JSON → publish stores blocks, public renders them
 step 21, ✅ Build list tables for posts/pages/media with filters, search, bulk actions → bulk trash/publish works
 step 22, ✅ Build media picker modal reusable from the editor → insert image into a block
-step 23, Build admin dashboard (at a glance, activity, quick draft) → dashboard is the admin home
+step 23, ✅ Build admin dashboard (at a glance, activity, quick draft) → dashboard is the admin home
 
 ### Phase D — Themes
 
