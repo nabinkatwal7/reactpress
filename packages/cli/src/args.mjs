@@ -1,5 +1,5 @@
 /** Flags that never take a value, so `--json post list` does not swallow `post`. */
-const BOOLEAN = new Set(["json", "help", "yes", "password-stdin", "network", "no-activate", "force"]);
+const BOOLEAN = new Set(["json", "help", "yes", "password-stdin", "network", "no-activate", "force", "media"]);
 
 /**
  * Tiny argument parser: `--key value`, `--key=value`, `--flag`, `-h`, and `--` to stop parsing.

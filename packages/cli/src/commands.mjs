@@ -269,20 +269,22 @@ async function scaffoldCmd({ positionals, flags }) {
 }
 
 async function exportCmd({ flags }) {
-  const [me, posts, pages, taxonomies] = await Promise.all([
-    api("GET", "/api/admin/me"),
-    api("GET", "/api/admin/posts"),
-    api("GET", "/api/admin/pages"),
-    api("GET", "/api/admin/taxonomies"),
-  ]);
-  const terms = {};
-  for (const t of taxonomies.taxonomies) terms[t.key] = (await api("GET", `/api/admin/terms?taxonomy=${encodeURIComponent(t.key)}`)).terms;
-  const data = { format: "reactpress-export", version: 1, exported_at: new Date().toISOString(), site: me.site, posts: posts.posts, pages: pages.pages, taxonomies: taxonomies.taxonomies, terms };
+  const data = await api("GET", `/api/admin/export${flags.media ? "?media=1" : ""}`);
   const json = JSON.stringify(data, null, 2) + "\n";
   if (typeof flags.out === "string") {
     await writeFile(flags.out, json);
-    console.error(`Exported ${data.posts.length} posts and ${data.pages.length} pages to ${flags.out}`);
+    console.error(`Exported ${data.posts.length} posts, ${data.pages.length} pages and ${data.media.length} media items to ${flags.out}`);
   } else process.stdout.write(json);
+}
+
+async function importCmd({ positionals, flags }) {
+  const file = need(positionals[0], "reactpress import <file.json> [--mode merge|replace] [--yes]");
+  const mode = flags.mode === "replace" ? "replace" : "merge";
+  if (mode === "replace" && !flags.yes) throw new Error("--mode replace deletes this site's current content first. Add --yes to confirm.");
+  const body = JSON.parse(file === "-" ? await readStdin() : await readFile(file, "utf8"));
+  const { report } = await api("POST", `/api/admin/import?mode=${mode}${mode === "replace" ? "&confirm=replace" : ""}`, body);
+  console.log(`Imported (${report.mode}): ${Object.entries(report.counts).map(([k, v]) => `${v} ${k}`).join(", ")}`);
+  for (const w of report.warnings) console.error(`warning: ${w}`);
 }
 
 export const COMMANDS = {
@@ -299,5 +301,6 @@ export const COMMANDS = {
   registry: { sub: registryCommands, help: "registry list|add|remove                           Marketplace registries of this network (super admin)" },
   package: { run: packageCmd, help: "package <folder> [--out dir] [--url-base u]       Zip a theme/plugin and print its registry entry" },
   scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
-  export: { run: exportCmd, help: "export [--out file.json]                         Export posts, pages and terms as JSON" },
+  export: { run: exportCmd, help: "export [--media] [--out file.json]                Export the site as ReactPress JSON" },
+  import: { run: importCmd, help: "import <file.json> [--mode merge|replace] [--yes]   Import a ReactPress JSON export" },
 };
