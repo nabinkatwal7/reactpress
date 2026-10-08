@@ -155,6 +155,12 @@ export default function HomePage() {
           Admin
         </Link>
         <Link
+          href="/search"
+          className="text-neutral-600 underline hover:text-neutral-900"
+        >
+          Search
+        </Link>
+        <Link
           href="/api/health"
           className="text-neutral-600 underline hover:text-neutral-900"
         >

@@ -89,26 +89,26 @@ model RoleCapability {
 }
 
 model Site {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  domain    String?
-  isDefault Boolean  @default(false)
-  posts     Post[]
-  pages     Page[]
-  revisions Revision[]
-  jobs      Job[]
-  terms     Term[]
-  media     Media[]
-  comments  Comment[]
-  postTypes PostType[]
-  taxonomies Taxonomy[]
-  menus     Menu[]
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  domain        String?
+  isDefault     Boolean        @default(false)
+  posts         Post[]
+  pages         Page[]
+  revisions     Revision[]
+  jobs          Job[]
+  terms         Term[]
+  media         Media[]
+  comments      Comment[]
+  postTypes     PostType[]
+  taxonomies    Taxonomy[]
+  menus         Menu[]
   menuLocations MenuLocation[]
-  widgetAreas WidgetArea[]
-  settings  Setting[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  widgetAreas   WidgetArea[]
+  settings      Setting[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([isDefault])
 }
@@ -122,29 +122,32 @@ enum PostStatus {
 }
 
 model Post {
-  id          String     @id @default(cuid())
-  siteId      String
-  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  authorId    String?
-  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  id              String     @id @default(cuid())
+  siteId          String
+  site            Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  authorId        String?
+  author          User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
   featuredMediaId String?
   featuredMedia   Media?     @relation("PostFeatured", fields: [featuredMediaId], references: [id], onDelete: SetNull)
-  type        String     @default("post")
-  title       String
-  slug        String
-  status      PostStatus @default(draft)
-  content     Json       @default("[]")
-  publishedAt DateTime?
-  scheduledAt DateTime?
-  terms       PostTerm[]
-  comments    Comment[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  type            String     @default("post")
+  title           String
+  slug            String
+  status          PostStatus @default(draft)
+  content         Json       @default("[]")
+  publishedAt     DateTime?
+  scheduledAt     DateTime?
+  terms           PostTerm[]
+  comments        Comment[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  searchVector Unsupported("tsvector")?
 
   @@unique([siteId, slug])
   @@index([siteId, status])
   @@index([siteId, type])
   @@index([siteId, createdAt])
+  @@index([searchVector], type: Gin)
 }
 
 model Page {
@@ -165,9 +168,12 @@ model Page {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  searchVector Unsupported("tsvector")?
+
   @@unique([siteId, slug])
   @@index([siteId, status])
   @@index([parentId])
+  @@index([searchVector], type: Gin)
 }
 
 enum RevisionKind {
