@@ -6,7 +6,8 @@ import { requireSiteId } from "@/lib/site";
 import { buildThemeContext, cssVars } from "./context";
 import { loadArchive, loadPage, loadPageById, loadPostList, loadSinglePost } from "./data";
 import { getActiveThemeSlug, loadTheme } from "./themes";
-import type { TemplateKind, ThemeContext, ThemeModule } from "./types";
+import { resolveTemplate, templateCandidates, type HierarchyInfo } from "./hierarchy";
+import type { ThemeContext, ThemeModule } from "./types";
 import type { ThemeManifest } from "./manifest";
 
 /**
@@ -14,19 +15,20 @@ import type { ThemeManifest } from "./manifest";
  * data, pick the template from the active theme and wrap it in the theme's header/footer parts.
  */
 
-type Loaded = { siteId: string; manifest: ThemeManifest; module: ThemeModule; ctx: ThemeContext };
+type Loaded = {
+  siteId: string;
+  manifest: ThemeManifest;
+  module: ThemeModule;
+  ctx: ThemeContext;
+  /** Per-site template overrides (hierarchy name → template). */
+  overrides: Record<string, string>;
+};
 
 async function loadActive(): Promise<Loaded> {
   const siteId = await requireSiteId();
   const theme = await loadTheme(await getActiveThemeSlug(siteId));
   const ctx = await buildThemeContext(siteId, theme.manifest);
-  return { siteId, manifest: theme.manifest, module: theme.module, ctx };
-}
-
-/** Template to use for a page kind. Hierarchy resolution replaces this in lib/theme/hierarchy.ts. */
-function pickTemplate(loaded: Loaded, candidates: string[]): string {
-  const found = candidates.find((n) => loaded.manifest.templates.includes(n) && loaded.module.templates[n]);
-  return found ?? "index";
+  return { siteId, manifest: theme.manifest, module: theme.module, ctx, overrides: {} };
 }
 
 function frame(loaded: Loaded, template: string, props: Record<string, unknown>): ReactElement {
@@ -52,8 +54,10 @@ function frame(loaded: Loaded, template: string, props: Record<string, unknown>)
   );
 }
 
-function render(loaded: Loaded, kind: TemplateKind, props: Record<string, unknown>, extra: string[] = []) {
-  return frame(loaded, pickTemplate(loaded, [...extra, kind, "index"]), props);
+/** Resolve the template through the hierarchy and render it inside the theme frame. */
+function render(loaded: Loaded, info: HierarchyInfo, props: Record<string, unknown>) {
+  const available = new Set(loaded.manifest.templates.filter((n) => loaded.module.templates[n]));
+  return frame(loaded, resolveTemplate(templateCandidates(info), available, loaded.overrides), props);
 }
 
 export async function renderHome(page = 1): Promise<ReactElement> {
@@ -61,10 +65,10 @@ export async function renderHome(page = 1): Promise<ReactElement> {
   const settings = await getSettings(loaded.siteId);
   if (settings.homepage_mode === "page" && settings.homepage_page_id) {
     const p = await loadPageById(loaded.siteId, settings.homepage_page_id);
-    if (p) return render(loaded, "page", { page: p });
+    if (p) return render(loaded, { kind: "front-page", slug: p.slug }, { page: p });
   }
   const list = await loadPostList(loaded.siteId, { page });
-  return render(loaded, "home", list);
+  return render(loaded, { kind: "home" }, list);
 }
 
 /** Resolve a catch-all path. Returns null when nothing matches (caller should 404). */
@@ -75,19 +79,19 @@ export async function renderPath(path: string[], page = 1): Promise<ReactElement
   if (path.length === 2 && path[0] === settings.post_base) {
     const single = await loadSinglePost(siteId, path[1]);
     if (!single) return null;
-    return render(await loadActive(), "single", single);
+    return render(await loadActive(), { kind: "single", type: single.post.type, slug: path[1] }, single);
   }
 
   if (path.length === 1) {
     const p = await loadPage(siteId, path[0]);
     if (!p) return null;
-    return render(await loadActive(), "page", { page: p });
+    return render(await loadActive(), { kind: "page", slug: p.slug }, { page: p });
   }
 
   if (path.length === 2 && (await getTaxonomy(siteId, path[0]))) {
     const archive = await loadArchive(siteId, path[0], path[1], page);
     if (!archive) return null;
-    return render(await loadActive(), "archive", archive);
+    return render(await loadActive(), { kind: "archive", taxonomy: path[0], term: path[1] }, archive);
   }
 
   return null;
@@ -96,12 +100,12 @@ export async function renderPath(path: string[], page = 1): Promise<ReactElement
 export async function renderSearch(query: string): Promise<ReactElement> {
   const loaded = await loadActive();
   const results = query.trim() ? await searchContent(loaded.siteId, query, { limit: 20 }) : [];
-  return render(loaded, "search", {
+  return render(loaded, { kind: "search" }, {
     query,
     results: results.map((r) => ({ kind: r.kind, id: r.id, title: r.title, url: r.url, excerpt: r.excerpt })),
   });
 }
 
 export async function renderNotFound(): Promise<ReactElement> {
-  return render(await loadActive(), "404", {});
+  return render(await loadActive(), { kind: "404" }, {});
 }
