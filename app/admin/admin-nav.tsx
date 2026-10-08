@@ -31,6 +31,7 @@ export const NAV: Group[] = [
       { href: "/admin/themes", label: "Themes" },
       { href: "/admin/customize", label: "Customize" },
       { href: "/admin/parts", label: "Header & footer" },
+      { href: "/admin/templates", label: "Template overrides" },
       { href: "/admin/menus", label: "Menus" },
       { href: "/admin/widgets", label: "Widgets" },
     ],

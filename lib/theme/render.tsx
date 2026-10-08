@@ -8,6 +8,7 @@ import { Cap, can } from "@/lib/caps";
 import { buildThemeContext, cssVars } from "./context";
 import { getDraft, type CustomizerValues } from "./customizer";
 import { loadArchive, loadPage, loadPageById, loadPostList, loadSinglePost } from "./data";
+import { getOverrideMap } from "./overrides";
 import { getActiveThemeSlug, loadTheme } from "./themes";
 import { resolveTemplate, templateCandidates, type HierarchyInfo } from "./hierarchy";
 import type { ThemeContext, ThemeModule } from "./types";
@@ -42,7 +43,14 @@ async function loadActive(preview = false): Promise<Loaded> {
   const theme = await loadTheme(await getActiveThemeSlug(siteId));
   const draft = await previewDraft(siteId, theme.manifest, preview);
   const ctx = await buildThemeContext(siteId, theme.manifest, { draft });
-  return { siteId, manifest: theme.manifest, module: theme.module, ctx, overrides: {}, draft };
+  return {
+    siteId,
+    manifest: theme.manifest,
+    module: theme.module,
+    ctx,
+    overrides: await getOverrideMap(siteId, theme.slug),
+    draft,
+  };
 }
 
 function frame(loaded: Loaded, template: string, props: Record<string, unknown>): ReactElement {

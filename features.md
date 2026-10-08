@@ -186,7 +186,7 @@ step 25, ✅ Ship a default theme and theme install/activate API → switching t
 step 26, ✅ Implement template hierarchy resolver → correct template for home/single/page/archive/404
 step 27, ✅ Support template parts (header/footer) editable via theme → parts render on all pages
 step 28, ✅ Build Customizer (logo, colors, menus, homepage) with draft + publish → preview before go-live
-step 29, Add theme file editor or template override list for power users → can override one template per site
+step 29, ✅ Add theme file editor or template override list for power users → can override one template per site
 
 ### Phase E — Plugins
 

@@ -110,6 +110,7 @@ model Site {
   themes        ThemeInstall[]
   templateParts TemplatePart[]
   themeMods ThemeMods[]
+  templateOverrides TemplateOverride[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -448,4 +449,17 @@ model ThemeMods {
   updatedAt DateTime @updatedAt
 
   @@unique([siteId, theme])
+}
+
+/// Per-site rule: wherever the theme would use `template`, use `target` (another template of the same theme).
+model TemplateOverride {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  theme     String
+  template  String
+  target    String
+  createdAt DateTime @default(now())
+
+  @@unique([siteId, theme, template])
 }
