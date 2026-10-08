@@ -1,0 +1,24 @@
+ReactPress — Build Plan
+
+step 1, Set up a React app (Vite + React + TypeScript)
+step 2, Add a backend API (Node + Express or similar)
+step 3, Connect a database (Postgres or SQLite)
+step 4, Create Post model (title, content, slug, status, author, dates)
+step 5, Create Page model (same fields as posts, for static pages)
+step 6, Create User model (name, email, password, role)
+step 7, Add auth (register, login, JWT, protect routes)
+step 8, Build admin layout (sidebar + top bar)
+step 9, Build post list page in admin (view, edit, delete)
+step 10, Build post editor (title, rich text, publish / draft)
+step 11, Build page list + page editor (same as posts)
+step 12, Build media upload (images, store files, show gallery)
+step 13, Build public site layout (header, footer, nav)
+step 14, Show posts on the blog home page
+step 15, Show single post by slug
+step 16, Show static pages by slug
+step 17, Add categories and tags for posts
+step 18, Add basic roles (admin, editor, author)
+step 19, Add site settings (site name, logo, homepage)
+step 20, Style admin and public site
+step 21, Add search for posts
+step 22, Deploy frontend and backend
