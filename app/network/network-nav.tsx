@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/network/users", label: "Users" },
   { href: "/network/themes", label: "Themes" },
   { href: "/network/plugins", label: "Plugins" },
+  { href: "/network/marketplace", label: "Marketplace" },
 ];
 
 export function NetworkNav() {

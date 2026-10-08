@@ -7,10 +7,13 @@ import { isIP } from "node:net";
  * every connection: delivery connects through `safeLookup`, so the address that was checked is
  * the address that is used (no DNS-rebinding gap).
  *
- * Self-hosters who really want internal targets can set REACTPRESS_WEBHOOKS_ALLOW_PRIVATE=1.
+ * Also used for marketplace registries/downloads and WordPress media downloads (anything fetched from
+ * a URL an admin typed). Self-hosters who really want internal targets can set
+ * REACTPRESS_ALLOW_PRIVATE_FETCH=1 (REACTPRESS_WEBHOOKS_ALLOW_PRIVATE=1 still works).
  */
 
-const allowPrivate = () => process.env.REACTPRESS_WEBHOOKS_ALLOW_PRIVATE === "1";
+const allowPrivate = () =>
+  process.env.REACTPRESS_ALLOW_PRIVATE_FETCH === "1" || process.env.REACTPRESS_WEBHOOKS_ALLOW_PRIVATE === "1";
 
 function ipv4Private(ip: string): boolean {
   const [a, b] = ip.split(".").map(Number);

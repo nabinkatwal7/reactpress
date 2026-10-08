@@ -213,7 +213,7 @@ step 43, ✅ Add webhooks on post publish/update/delete → outbound HTTP fires 
 
 ### Phase H — Marketplace and portability
 
-step 44, Build marketplace catalog UI reading a registry JSON/API → browse themes and plugins
+step 44, ✅ Build marketplace catalog UI reading a registry JSON/API → browse themes and plugins
 step 45, Install theme/plugin from registry URL into `themes/` or `plugins/` → one-click install activates
 step 46, Export and import full site as ReactPress JSON → round-trip a site
 step 47, Import WordPress WXR (posts, pages, categories, media URLs) → WP content lands in ReactPress

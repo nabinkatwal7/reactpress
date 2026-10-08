@@ -99,6 +99,8 @@ model Network {
   enabledThemes  String[] @default([])
   /// Plugins active on every site of the network (sites cannot deactivate them).
   networkPlugins String[] @default([])
+  /// Marketplace registry URLs (JSON catalogs of installable themes and plugins).
+  registries     String[] @default([])
   sites     Site[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
