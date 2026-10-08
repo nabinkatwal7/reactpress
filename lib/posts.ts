@@ -1,5 +1,6 @@
 import type { Post, PostStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createRevision } from "@/lib/revisions";
 import { slugify } from "@/lib/slug";
 import { withSiteId } from "@/lib/site";
 import type { CreatePostInput, UpdatePostInput } from "@/lib/validations/post";
@@ -44,7 +45,7 @@ export async function createPost(
   const slug = await uniqueSlug(siteId, input.slug ?? input.title);
   const status = input.status ?? "draft";
 
-  return prisma.post.create({
+  const created = await prisma.post.create({
     data: {
       siteId,
       authorId,
@@ -55,6 +56,11 @@ export async function createPost(
       publishedAt: status === "publish" ? new Date() : null,
     },
   });
+  await createRevision(siteId, "post", created.id, authorId, {
+    title: created.title,
+    content: created.content,
+  });
+  return created;
 }
 
 export async function updatePost(
@@ -82,10 +88,17 @@ export async function updatePost(
     // keep slug unless explicitly changed — ponytail: no auto-rename on edit
   }
 
-  return prisma.post.update({
+  const updated = await prisma.post.update({
     where: { id },
     data,
   });
+  if (input.title !== undefined || input.content !== undefined) {
+    await createRevision(siteId, "post", id, existing.authorId, {
+      title: updated.title,
+      content: updated.content,
+    });
+  }
+  return updated;
 }
 
 export async function deletePost(siteId: string, id: string): Promise<boolean> {

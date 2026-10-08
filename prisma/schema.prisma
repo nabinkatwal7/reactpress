@@ -94,6 +94,7 @@ model Site {
   isDefault Boolean  @default(false)
   posts     Post[]
   pages     Page[]
+  revisions Revision[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -146,4 +147,25 @@ model Page {
   @@unique([siteId, slug])
   @@index([siteId, status])
   @@index([parentId])
+}
+
+enum RevisionKind {
+  revision
+  autosave
+}
+
+/// Snapshot of a post/page body. entityType is "post" | "page".
+model Revision {
+  id         String       @id @default(cuid())
+  siteId     String
+  site       Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  authorId   String?
+  kind       RevisionKind @default(revision)
+  title      String
+  content    Json         @default("[]")
+  createdAt  DateTime     @default(now())
+
+  @@index([siteId, entityType, entityId, createdAt])
 }
