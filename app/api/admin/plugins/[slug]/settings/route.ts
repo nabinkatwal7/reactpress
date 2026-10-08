@@ -1,6 +1,7 @@
 import { parseBody } from "@/lib/api-json";
 import { Cap } from "@/lib/caps";
-import { isKnownPlugin } from "@/lib/plugins/plugins";
+import { networkPluginSlugs } from "@/lib/network/policy";
+import { installPlugin, isKnownPlugin } from "@/lib/plugins/plugins";
 import { getPluginSettings, savePluginSettings } from "@/lib/plugins/settings";
 import { isApiError, requireApiAdmin } from "@/lib/require-api-admin";
 import { requireSiteId } from "@/lib/site";
@@ -29,7 +30,9 @@ export async function PUT(request: Request, ctx: Ctx) {
   const body = await parseBody(request, bodySchema);
   if ("error" in body) return body.error;
 
-  const values = await savePluginSettings(await requireSiteId(), PLUGIN_REGISTRY[slug].manifest, body.data.values);
+  const siteId = await requireSiteId();
+  if ((await networkPluginSlugs(siteId)).includes(slug)) await installPlugin(siteId, slug);
+  const values = await savePluginSettings(siteId, PLUGIN_REGISTRY[slug].manifest, body.data.values);
   if (!values) return NextResponse.json({ error: "Plugin is not installed" }, { status: 404 });
   revalidatePath("/", "layout");
   return NextResponse.json({ values });

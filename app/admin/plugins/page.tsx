@@ -12,7 +12,7 @@ export default async function PluginsPage() {
     <main className="flex flex-1 flex-col gap-6 p-8">
       <PageHeader title="Plugins" />
       <ul className="grid gap-4 md:grid-cols-2">
-        {plugins.map(({ manifest, installed, active }) => (
+        {plugins.map(({ manifest, installed, active, networkActive }) => (
           <li
             key={manifest.slug}
             className={`flex flex-col gap-3 border p-4 ${active ? "border-neutral-900" : "border-neutral-200"}`}
@@ -29,6 +29,7 @@ export default async function PluginsPage() {
               slug={manifest.slug}
               installed={installed}
               active={active}
+              networkActive={networkActive}
               hasConfig={manifest.settings.length > 0 || manifest.adminPages.length > 0}
             />
           </li>

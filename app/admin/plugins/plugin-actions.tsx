@@ -11,11 +11,13 @@ export function PluginActions({
   installed,
   active,
   hasConfig,
+  networkActive,
 }: {
   slug: string;
   installed: boolean;
   active: boolean;
   hasConfig: boolean;
+  networkActive: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -40,7 +42,9 @@ export function PluginActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {active ? (
+      {networkActive ? (
+        <span className="text-sm text-neutral-500">Activated by the network</span>
+      ) : active ? (
         <button type="button" disabled={busy} onClick={() => run("deactivate")} className={btn}>
           Deactivate
         </button>
@@ -49,12 +53,12 @@ export function PluginActions({
           Activate
         </button>
       )}
-      {!installed ? (
+      {!installed && !networkActive ? (
         <button type="button" disabled={busy} onClick={() => run("install")} className={btn}>
           Install
         </button>
       ) : null}
-      {installed && !active ? (
+      {installed && !active && !networkActive ? (
         <button type="button" disabled={busy} onClick={() => run("delete")} className={`${btn} text-red-600`}>
           Delete
         </button>

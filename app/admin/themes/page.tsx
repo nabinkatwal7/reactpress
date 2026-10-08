@@ -12,7 +12,7 @@ export default async function ThemesPage() {
     <main className="flex flex-1 flex-col gap-6 p-8">
       <PageHeader title="Themes" />
       <ul className="grid gap-4 md:grid-cols-2">
-        {themes.map(({ manifest, installed, active }) => (
+        {themes.map(({ manifest, installed, active, allowed }) => (
           <li
             key={manifest.slug}
             className={`flex flex-col gap-3 border p-4 ${active ? "border-neutral-900" : "border-neutral-200"}`}
@@ -33,7 +33,11 @@ export default async function ThemesPage() {
               <p className="text-sm text-neutral-600">{manifest.description}</p>
               <p className="text-xs text-neutral-500">By {manifest.author}</p>
             </div>
-            <ThemeActions slug={manifest.slug} installed={installed} active={active} />
+            {allowed ? (
+              <ThemeActions slug={manifest.slug} installed={installed} active={active} />
+            ) : (
+              <p className="text-sm text-neutral-500">Not enabled for this network.</p>
+            )}
           </li>
         ))}
       </ul>

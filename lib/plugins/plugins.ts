@@ -1,7 +1,8 @@
 import path from "node:path";
+import { networkPluginSlugs } from "@/lib/network/policy";
 import { prisma } from "@/lib/prisma";
 import { PLUGIN_REGISTRY } from "@/plugins/registry";
-import { reloadPlugins } from "./loader";
+import { activePluginSlugs, reloadPlugins } from "./loader";
 import { PLUGINS_DIR, validatePluginDir, type PluginManifest } from "./manifest";
 import { removePluginFiles } from "./sandbox";
 import { removePluginData } from "./store";
@@ -10,6 +11,8 @@ export type PluginListing = {
   manifest: PluginManifest;
   installed: boolean;
   active: boolean;
+  /** Forced on by the network: shown as active, cannot be deactivated or deleted by the site. */
+  networkActive: boolean;
 };
 
 export function isKnownPlugin(slug: string) {
@@ -17,11 +20,12 @@ export function isKnownPlugin(slug: string) {
 }
 
 export async function listPlugins(siteId: string): Promise<PluginListing[]> {
-  const rows = await prisma.pluginInstall.findMany({ where: { siteId } });
+  const [rows, forced] = await Promise.all([prisma.pluginInstall.findMany({ where: { siteId } }), networkPluginSlugs(siteId)]);
   const bySlug = new Map(rows.map((r) => [r.slug, r]));
   return Object.values(PLUGIN_REGISTRY).map(({ manifest }) => {
     const row = bySlug.get(manifest.slug);
-    return { manifest, installed: !!row, active: !!row?.active };
+    const networkActive = forced.includes(manifest.slug);
+    return { manifest, installed: !!row || networkActive, active: !!row?.active || networkActive, networkActive };
   });
 }
 
@@ -44,6 +48,7 @@ export async function activatePlugin(siteId: string, slug: string) {
 }
 
 export async function deactivatePlugin(siteId: string, slug: string) {
+  if ((await networkPluginSlugs(siteId)).includes(slug)) throw new Error("This plugin is activated for the whole network");
   const res = await prisma.pluginInstall.updateMany({ where: { siteId, slug }, data: { active: false } });
   await reloadPlugins(siteId);
   return res.count > 0;
@@ -51,6 +56,7 @@ export async function deactivatePlugin(siteId: string, slug: string) {
 
 /** Delete = remove the install and its settings. Active plugins must be deactivated first. */
 export async function deletePlugin(siteId: string, slug: string) {
+  if ((await networkPluginSlugs(siteId)).includes(slug)) throw new Error("This plugin is activated for the whole network");
   const row = await prisma.pluginInstall.findUnique({ where: { siteId_slug: { siteId, slug } } });
   if (!row) return false;
   if (row.active) throw new Error("Deactivate the plugin before deleting it");
@@ -61,8 +67,7 @@ export async function deletePlugin(siteId: string, slug: string) {
 
 /** Sidebar entries for the admin pages of the site's active plugins. */
 export async function activePluginPages(siteId: string): Promise<{ href: string; label: string }[]> {
-  const rows = await prisma.pluginInstall.findMany({ where: { siteId, active: true }, orderBy: { installedAt: "asc" } });
-  return rows.flatMap(({ slug }) =>
+  return (await activePluginSlugs(siteId)).flatMap((slug) =>
     Object.hasOwn(PLUGIN_REGISTRY, slug)
       ? PLUGIN_REGISTRY[slug].manifest.adminPages.map((p) => ({ href: `/admin/plugins/${slug}/${p.slug}`, label: p.title }))
       : [],

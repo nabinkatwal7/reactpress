@@ -1,4 +1,5 @@
 import path from "node:path";
+import { allowedThemeSlugs } from "@/lib/network/policy";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_THEME, THEME_REGISTRY } from "@/themes/registry";
 import { THEMES_DIR, validateThemeDir, type ThemeManifest } from "./manifest";
@@ -8,6 +9,8 @@ export type ThemeListing = {
   manifest: ThemeManifest;
   installed: boolean;
   active: boolean;
+  /** False when the network does not allow this site to activate the theme. */
+  allowed: boolean;
 };
 
 export function isKnownTheme(slug: string) {
@@ -21,9 +24,10 @@ export async function getActiveThemeSlug(siteId: string): Promise<string> {
 }
 
 export async function listThemes(siteId: string): Promise<ThemeListing[]> {
-  const [rows, activeSlug] = await Promise.all([
+  const [rows, activeSlug, allowed] = await Promise.all([
     prisma.themeInstall.findMany({ where: { siteId } }),
     getActiveThemeSlug(siteId),
+    allowedThemeSlugs(siteId),
   ]);
   const installed = new Set(rows.map((r) => r.slug));
   return Object.values(THEME_REGISTRY).map(({ manifest }) => ({
@@ -31,12 +35,20 @@ export async function listThemes(siteId: string): Promise<ThemeListing[]> {
     // the default theme is always usable even before anyone installs it
     installed: installed.has(manifest.slug) || manifest.slug === DEFAULT_THEME,
     active: manifest.slug === activeSlug,
+    // a theme already in use stays usable; the rule only stops new activations
+    allowed: !allowed || allowed.has(manifest.slug) || manifest.slug === activeSlug,
   }));
 }
 
 /** Install = record it for the site after checking the package on disk. */
+async function assertAllowed(siteId: string, slug: string) {
+  const allowed = await allowedThemeSlugs(siteId);
+  if (allowed && !allowed.has(slug)) throw new Error("This theme is not enabled for the network");
+}
+
 export async function installTheme(siteId: string, slug: string) {
   if (!isKnownTheme(slug)) throw new Error("Unknown theme");
+  await assertAllowed(siteId, slug);
   const check = validateThemeDir(path.join(THEMES_DIR, slug));
   if (!check.ok) throw new Error(`Theme is invalid: ${check.issues.join("; ")}`);
   return prisma.themeInstall.upsert({

@@ -1,4 +1,5 @@
 import { activePluginPages } from "@/lib/plugins/plugins";
+import { isSuperAdmin } from "@/lib/network/users";
 import { requireAdmin } from "@/lib/require-admin";
 import { getSettings } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
@@ -12,7 +13,11 @@ export const instant = false;
 async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
   const siteId = await requireSiteId();
-  const [settings, pluginItems] = await Promise.all([getSettings(siteId), activePluginPages(siteId)]);
+  const [settings, pluginItems, superAdmin] = await Promise.all([
+    getSettings(siteId),
+    activePluginPages(siteId),
+    isSuperAdmin(session.user?.id),
+  ]);
 
   return (
     <div className="flex min-h-full flex-1">
@@ -29,6 +34,11 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
             {settings.site_title} ↗
           </Link>
           <div className="flex items-center gap-4">
+            {superAdmin ? (
+              <Link href="/network" className="text-neutral-600 hover:underline">
+                Network admin
+              </Link>
+            ) : null}
             <span className="text-neutral-500">{session.user?.email}</span>
             <form action={signOutAction}>
               <button type="submit" className="text-neutral-600 hover:underline">
