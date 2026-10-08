@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import { scanThemeDir } from "@/lib/plugins/scan";
 
 /**
  * Theme package format. Author rules live in themes/README.md; this file is the
@@ -103,6 +104,8 @@ export function validateThemeDir(dir: string): { ok: true; manifest: ThemeManife
   for (const t of m.templates) need(`templates/${t}.tsx`);
   for (const p of m.parts) need(`parts/${p}.tsx`);
   if (m.screenshot) need(m.screenshot);
+
+  if (!issues.length) issues.push(...scanThemeDir(dir));
 
   return issues.length ? { ok: false, issues } : { ok: true, manifest: m };
 }

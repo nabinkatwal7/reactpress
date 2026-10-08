@@ -6,6 +6,9 @@ import { createPluginFiles, pluginFileRoot, type PluginFiles } from "./sandbox";
 import { getPluginSettings, type SettingValues } from "./settings";
 import { createPluginStore, type PluginStore } from "./store";
 
+/** What a plugin entry module default-exports. */
+export type PluginRegister = (api: PluginApi) => void | Promise<void>;
+
 export type PostSummary = { id: string; title: string; slug: string; publishedAt: Date | null };
 
 /**

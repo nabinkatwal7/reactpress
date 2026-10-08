@@ -2,6 +2,7 @@ import type { ThemeModule } from "@/lib/theme/types";
 import type { ThemeManifest } from "@/lib/theme/manifest";
 import defaultManifest from "./default/theme.json";
 import midnightManifest from "./midnight/theme.json";
+import { INSTALLED } from "./installed.generated";
 
 /**
  * Themes shipped with this build. Components must be imported statically for the bundler, so
@@ -12,6 +13,8 @@ export const THEME_REGISTRY: Record<
   string,
   { manifest: ThemeManifest; load: () => Promise<ThemeModule> }
 > = {
+  // themes installed from a marketplace (generated); bundled ones below win on a slug clash
+  ...INSTALLED,
   default: {
     manifest: defaultManifest as ThemeManifest,
     load: async () => (await import("./default")).default,

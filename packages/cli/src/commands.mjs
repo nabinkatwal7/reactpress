@@ -4,6 +4,7 @@ import { clearConfig, loadConfig, normalizeUrl, saveConfig } from "./config.mjs"
 import { textToBlocks } from "./content.mjs";
 import { printJson, table } from "./output.mjs";
 import { ask, readStdin } from "./prompt.mjs";
+import { packageFolder } from "./package.mjs";
 import { scaffold } from "./scaffold.mjs";
 
 const need = (v, usage) => {
@@ -197,6 +198,66 @@ const webhookCommands = {
   },
 };
 
+// ---- marketplace ---------------------------------------------------------------------------------------
+
+const marketplaceCommands = {
+  async list({ flags }) {
+    const { items, errors } = await api("GET", `/api/network/marketplace${flags.fresh ? "?fresh=1" : ""}`);
+    const shown = items.filter((i) => !flags.type || i.type === flags.type);
+    if (flags.json) return printJson({ items: shown, errors });
+    for (const e of errors) console.error(`registry problem: ${e.error}`);
+    if (!shown.length) return console.log("Nothing in the marketplace. Add a registry with: reactpress registry add <url>");
+    console.log(table(["TYPE", "SLUG", "VERSION", "STATUS", "NAME"], shown.map((i) => [i.type, i.slug, i.version, i.status === "update" ? `update (have ${i.installedVersion})` : i.status, i.name])));
+  },
+  async install({ positionals, flags }) {
+    const slug = need(positionals[0], "reactpress marketplace install <slug> [--type theme|plugin] [--no-activate]");
+    const { items } = await api("GET", "/api/network/marketplace");
+    const matches = items.filter((i) => i.slug === slug && (!flags.type || i.type === flags.type) && (!flags.registry || i.registry === flags.registry));
+    if (!matches.length) throw new Error(`"${slug}" is not in the marketplace`);
+    if (matches.length > 1) throw new Error(`"${slug}" matches several packages: pass --type and/or --registry`);
+    const item = matches[0];
+    const res = await api("POST", "/api/network/marketplace/install", { registry: item.registry, type: item.type, slug, activate: !flags["no-activate"] });
+    console.log(`Installed ${item.type} ${slug} v${item.version}${res.activated ? " and switched it on for this site" : ""}.`);
+    console.log(res.needsRebuild ? "This is a production server: rebuild it (next build) to load the new code." : "It is picked up on the next page load.");
+  },
+  async remove({ positionals, flags }) {
+    const [type, slug] = positionals;
+    need(type, "reactpress marketplace remove <theme|plugin> <slug> [--force]");
+    need(slug, "reactpress marketplace remove <theme|plugin> <slug> [--force]");
+    const res = await api("DELETE", `/api/network/marketplace/packages/${encodeURIComponent(type)}/${encodeURIComponent(slug)}${flags.force ? "?force=1" : ""}`);
+    console.log(`Removed ${type} ${slug}.${res.needsRebuild ? " Rebuild the production server to drop the code." : ""}`);
+  },
+};
+
+const registryCommands = {
+  async list({ flags }) {
+    const { registries } = await api("GET", "/api/network/registries");
+    if (flags.json) return printJson(registries);
+    if (!registries.length) console.log("No registries.");
+    for (const r of registries) console.log(r);
+  },
+  async add({ positionals }) {
+    const url = need(positionals[0], "reactpress registry add <url>");
+    const { registries } = await api("GET", "/api/network/registries");
+    await api("PUT", "/api/network/registries", { registries: [...registries, url] });
+    console.log(`Added ${url}`);
+  },
+  async remove({ positionals }) {
+    const url = need(positionals[0], "reactpress registry remove <url>");
+    const { registries } = await api("GET", "/api/network/registries");
+    if (!registries.includes(url)) throw new Error("That registry is not in the list");
+    await api("PUT", "/api/network/registries", { registries: registries.filter((r) => r !== url) });
+    console.log(`Removed ${url}`);
+  },
+};
+
+async function packageCmd({ positionals, flags }) {
+  const folder = need(positionals[0], "reactpress package <theme-or-plugin-folder> [--out dir] [--url-base https://host/downloads]");
+  const res = await packageFolder(folder, { outDir: typeof flags.out === "string" ? flags.out : ".", urlBase: typeof flags["url-base"] === "string" ? flags["url-base"] : undefined });
+  console.error(`Wrote ${res.file} (${res.files} files). Add this entry to your registry's "items":`);
+  printJson(res.entry);
+}
+
 // ---- scaffold + export ----------------------------------------------------------------------------------
 
 async function scaffoldCmd({ positionals, flags }) {
@@ -234,6 +295,9 @@ export const COMMANDS = {
   theme: { sub: extensionCommands("theme", ["install", "activate", "uninstall"]), help: "theme list|install|activate|uninstall          Manage themes" },
   user: { sub: userCommands, help: "user list|add|role|remove|create                Manage who can do what on this site" },
   webhook: { sub: webhookCommands, help: "webhook list|create|test|pause|resume|delete       Outbound webhooks on content changes" },
+  marketplace: { sub: marketplaceCommands, help: "marketplace list|install|remove                      Browse and install themes and plugins (super admin)" },
+  registry: { sub: registryCommands, help: "registry list|add|remove                           Marketplace registries of this network (super admin)" },
+  package: { run: packageCmd, help: "package <folder> [--out dir] [--url-base u]       Zip a theme/plugin and print its registry entry" },
   scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
   export: { run: exportCmd, help: "export [--out file.json]                         Export posts, pages and terms as JSON" },
 };

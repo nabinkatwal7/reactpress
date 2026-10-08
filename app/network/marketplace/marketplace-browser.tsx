@@ -31,10 +31,16 @@ export function MarketplaceBrowser({
   registries,
   items,
   errors,
+  installed,
+  siteName,
+  fileModsAllowed,
 }: {
   registries: string[];
   items: Item[];
   errors: { registry: string; error: string }[];
+  installed: { type: "theme" | "plugin"; slug: string; version: string }[];
+  siteName: string;
+  fileModsAllowed: boolean;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"all" | "theme" | "plugin">("all");
@@ -42,6 +48,45 @@ export function MarketplaceBrowser({
   const [list, setList] = useState(registries);
   const [newUrl, setNewUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [activate, setActivate] = useState(true);
+
+  async function install(i: Item) {
+    setBusy(`${i.type}/${i.slug}`);
+    setError(null);
+    setNotice(null);
+    const res = await fetch("/api/network/marketplace/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registry: i.registry, type: i.type, slug: i.slug, activate }),
+    });
+    const json = (await res.json().catch(() => null)) as { error?: string; activated?: boolean; needsRebuild?: boolean } | null;
+    setBusy(null);
+    if (!res.ok) return setError(json?.error ?? "Install failed");
+    setNotice(
+      `${i.name} v${i.version} installed${json?.activated ? ` and switched on for ${siteName}` : ""}.` +
+        (json?.needsRebuild ? " This is a production server: rebuild it (next build) to load the new code." : " It is picked up on the next page load."),
+    );
+    router.refresh();
+  }
+
+  async function remove(type: string, slug: string) {
+    if (!confirm(`Remove ${slug}? Sites using it go back to the default.`)) return;
+    setBusy(`${type}/${slug}`);
+    setError(null);
+    setNotice(null);
+    let res = await fetch(`/api/network/marketplace/packages/${type}/${slug}`, { method: "DELETE" });
+    let json = (await res.json().catch(() => null)) as { error?: string; needsRebuild?: boolean } | null;
+    if (!res.ok && json?.error?.includes("still used") && confirm(`${json.error}?`)) {
+      res = await fetch(`/api/network/marketplace/packages/${type}/${slug}?force=1`, { method: "DELETE" });
+      json = (await res.json().catch(() => null)) as typeof json;
+    }
+    setBusy(null);
+    if (!res.ok) return setError(json?.error ?? "Remove failed");
+    setNotice(`${slug} removed.` + (json?.needsRebuild ? " Rebuild the production server to drop the code." : ""));
+    router.refresh();
+  }
 
   const shown = items.filter(
     (i) =>
@@ -103,7 +148,33 @@ export function MarketplaceBrowser({
         ))}
       </section>
 
+      {installed.length ? (
+        <section className="flex max-w-3xl flex-col gap-2 text-sm">
+          <h2 className="font-medium">Installed from registries</h2>
+          <ul className="flex flex-col gap-1">
+            {installed.map((m) => (
+              <li key={`${m.type}/${m.slug}`} className="flex items-center justify-between border border-neutral-200 px-3 py-2">
+                <span>
+                  {m.slug} <span className="text-neutral-500">v{m.version} · {m.type}</span>
+                </span>
+                {fileModsAllowed ? (
+                  <button type="button" disabled={busy !== null} className="text-red-600 hover:underline" onClick={() => remove(m.type, m.slug)}>
+                    Remove
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-4">
+        {notice ? <p className="text-sm text-green-700">{notice}</p> : null}
+        {!fileModsAllowed ? <p className="text-sm text-neutral-600">Installing packages is turned off on this server.</p> : null}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={activate} onChange={(e) => setActivate(e.target.checked)} />
+          Switch new installs on for {siteName}
+        </label>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           {(["all", "theme", "plugin"] as const).map((t) => (
             <button
@@ -147,6 +218,20 @@ export function MarketplaceBrowser({
                   {STATUS_LABEL[i.status]}
                   {i.installedVersion ? ` (v${i.installedVersion})` : ""}
                 </p>
+              ) : null}
+              {fileModsAllowed && i.status !== "bundled" ? (
+                <div className="flex gap-2">
+                  {i.status === "available" || i.status === "update" ? (
+                    <button type="button" disabled={busy !== null} className="rounded bg-neutral-900 px-3 py-1.5 text-white disabled:opacity-50" onClick={() => install(i)}>
+                      {busy === `${i.type}/${i.slug}` ? "Working…" : i.status === "update" ? "Update" : "Install"}
+                    </button>
+                  ) : null}
+                  {i.status === "installed" || i.status === "update" ? (
+                    <button type="button" disabled={busy !== null} className={`${btn} text-red-600`} onClick={() => remove(i.type, i.slug)}>
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </li>
           ))}

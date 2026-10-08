@@ -43,27 +43,45 @@ function walk(dir: string, out: string[] = []) {
 }
 
 /** Check one source file's text. Returns human-readable violations (empty = clean). */
-export function scanSource(source: string, fileDir: string, pluginDir: string): string[] {
+export function scanSource(source: string, fileDir: string, pluginDir: string, allowed: readonly string[] = ALLOWED_IMPORTS): string[] {
   const issues: string[] = [];
   for (const m of source.matchAll(IMPORT_SPECIFIER)) {
     const spec = m[2];
     if (spec.startsWith(".")) {
       const target = path.resolve(fileDir, spec);
       if (target !== pluginDir && !target.startsWith(pluginDir + path.sep)) issues.push(`import "${spec}" escapes the plugin folder`);
-    } else if (!ALLOWED_IMPORTS.includes(spec)) {
-      issues.push(`import "${spec}" is not allowed (allowed: ${ALLOWED_IMPORTS.join(", ")})`);
+    } else if (!allowed.includes(spec)) {
+      issues.push(`import "${spec}" is not allowed (allowed: ${allowed.join(", ")})`);
     }
   }
   for (const [re, label] of FORBIDDEN) if (re.test(source)) issues.push(`uses ${label}`);
   return issues;
 }
 
-/** Scan every source file in a plugin folder. Issues are prefixed with the file they come from. */
-export function scanPluginDir(dir: string): string[] {
+/** Scan every source file in a folder. Issues are prefixed with the file they come from. */
+export function scanDir(dir: string, allowed: readonly string[] = ALLOWED_IMPORTS): string[] {
   const root = path.resolve(dir);
   return walk(root).flatMap((file) =>
-    scanSource(readFileSync(file, "utf8"), path.dirname(file), root).map(
+    scanSource(readFileSync(file, "utf8"), path.dirname(file), root, allowed).map(
       (issue) => `${path.relative(root, file).replaceAll("\\", "/")}: ${issue}`,
     ),
   );
 }
+
+export const scanPluginDir = (dir: string) => scanDir(dir, ALLOWED_IMPORTS);
+
+/** What theme code may import: React, links, and the public theme building blocks. */
+export const THEME_ALLOWED_IMPORTS = [
+  "react",
+  "react/jsx-runtime",
+  "next/link",
+  "@/lib/theme/types",
+  "@/lib/theme/manifest",
+  "@/lib/blocks",
+  "@/components/public/parts",
+  "@/components/public/site-link",
+  "@/components/content-blocks",
+  "@/components/widget-area",
+];
+
+export const scanThemeDir = (dir: string) => scanDir(dir, THEME_ALLOWED_IMPORTS);

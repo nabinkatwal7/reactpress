@@ -43,7 +43,12 @@ themes/<slug>/
     `<SiteLink href="/search">` from `components/public/site-link` (or prefix with `ctx.basePath`)
     for links you write yourself; URLs that arrive in props (menus, posts, terms, search results)
     are already prefixed. Never hard-code `/search`, `/admin` or `/`.
-11. **No server-only secrets, no network calls** in templates. Data arrives through props.
+11. **Imports are limited.** Theme code may import only `react`, `next/link`, `@/lib/theme/types`,
+    `@/lib/theme/manifest`, `@/lib/blocks`, `@/components/public/parts`, `@/components/public/site-link`,
+    `@/components/content-blocks`, `@/components/widget-area`, and its own files. The validator rejects
+    anything else (and `fs`, `process`, `eval`, `require`), because themes can be installed from a
+    marketplace (see `docs/marketplace.md`).
+12. **No server-only secrets, no network calls** in templates. Data arrives through props.
 
 ## Checking a theme
 

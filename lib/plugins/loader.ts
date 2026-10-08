@@ -22,13 +22,18 @@ export async function activePluginSlugs(siteId: string): Promise<string[]> {
   return [...new Set([...forced, ...rows.map((r) => r.slug)])];
 }
 
-async function boot(siteId: string) {
+/** Boots a site's plugins. Returns how many active plugins the running build does not know (yet). */
+async function boot(siteId: string): Promise<number> {
+  let unknown = 0;
   resetHookBus(siteId);
   resetAdminPages(siteId);
   const bus = getHookBus(siteId);
   for (const slug of await activePluginSlugs(siteId)) {
     const entry = Object.hasOwn(PLUGIN_REGISTRY, slug) ? PLUGIN_REGISTRY[slug] : null;
-    if (!entry) continue; // folder removed from the build; keep the row so the admin can still delete it
+    if (!entry) {
+      unknown += 1; // removed from the build, or installed after this build started; keep the row
+      continue;
+    }
     try {
       const register = await entry.load();
       await register(createPluginApi(siteId, entry.manifest, bus));
@@ -40,15 +45,23 @@ async function boot(siteId: string) {
     }
   }
   await bus.doAction("plugins_loaded");
+  return unknown;
 }
 
 export function ensurePluginsLoaded(siteId: string): Promise<void> {
   let p = booted.get(siteId);
   if (!p) {
-    p = boot(siteId).catch((e) => {
-      booted.delete(siteId); // retry on the next request
-      console.error("[plugins] boot failed:", e);
-    });
+    p = boot(siteId).then(
+      (unknown) => {
+        // a plugin installed from the marketplace becomes known once the registry is recompiled:
+        // look again shortly instead of waiting for a restart
+        if (unknown > 0) setTimeout(() => booted.delete(siteId), 3000).unref?.();
+      },
+      (e) => {
+        booted.delete(siteId); // retry on the next request
+        console.error("[plugins] boot failed:", e);
+      },
+    );
     booted.set(siteId, p);
   }
   return p;
