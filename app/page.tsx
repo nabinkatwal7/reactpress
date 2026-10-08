@@ -1,8 +1,39 @@
 import { auth, signOut } from "@/auth";
+import { getMenuForLocation, type ResolvedMenuItem } from "@/lib/menus";
+import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
 import { Suspense } from "react";
 
 export const instant = false;
+
+function MenuList({ items }: { items: ResolvedMenuItem[] }) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {items.map((item) => (
+        <li key={item.id}>
+          <Link href={item.href} className="underline">
+            {item.label}
+          </Link>
+          {item.children.length ? (
+            <div className="ml-4">
+              <MenuList items={item.children} />
+            </div>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+async function PrimaryMenu() {
+  const items = await getMenuForLocation(await requireSiteId(), "primary");
+  if (items.length === 0) return null;
+  return (
+    <nav aria-label="Primary" className="text-sm">
+      <MenuList items={items} />
+    </nav>
+  );
+}
 
 async function HomeContent() {
   const session = await auth();
@@ -51,6 +82,9 @@ export default function HomePage() {
         <h1 className="text-3xl font-semibold tracking-tight">Home</h1>
         <p className="mt-2 text-sm text-neutral-600">Public site shell</p>
       </div>
+      <Suspense fallback={null}>
+        <PrimaryMenu />
+      </Suspense>
       <Suspense fallback={<p className="text-sm text-neutral-500">Loading…</p>}>
         <HomeContent />
       </Suspense>

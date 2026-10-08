@@ -103,6 +103,8 @@ model Site {
   comments  Comment[]
   postTypes PostType[]
   taxonomies Taxonomy[]
+  menus     Menu[]
+  menuLocations MenuLocation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -320,4 +322,46 @@ model Comment {
 
   @@index([siteId, status, createdAt])
   @@index([postId, status])
+}
+
+model Menu {
+  id        String         @id @default(cuid())
+  siteId    String
+  site      Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String
+  items     MenuItem[]
+  locations MenuLocation[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([siteId])
+}
+
+/// objectType: "custom" (uses url) | "post" | "page" (uses objectId).
+model MenuItem {
+  id         String     @id @default(cuid())
+  menuId     String
+  menu       Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   MenuItem[] @relation("MenuTree")
+  label      String
+  objectType String     @default("custom")
+  objectId   String?
+  url        String?
+  position   Int        @default(0)
+
+  @@index([menuId, position])
+}
+
+/// Assigns a menu to a theme location key (see lib/menus.ts for registered locations).
+model MenuLocation {
+  id       String @id @default(cuid())
+  siteId   String
+  site     Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  location String
+  menuId   String
+  menu     Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, location])
 }
