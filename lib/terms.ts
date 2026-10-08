@@ -83,6 +83,7 @@ export async function deleteTerm(siteId: string, id: string) {
 
 /** Replace a post's terms. Ignores ids that are not on this site. */
 export async function setPostTerms(siteId: string, postId: string, termIds: string[]) {
+  if (!(await prisma.post.count({ where: withSiteId(siteId, { id: postId }) }))) return;
   const valid = await prisma.term.findMany({
     where: { siteId, id: { in: termIds } },
     select: { id: true },

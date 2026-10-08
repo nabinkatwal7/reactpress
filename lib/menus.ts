@@ -45,9 +45,9 @@ export async function deleteMenu(siteId: string, id: string) {
 export type EditorItem = MenuItemInput & { id: string };
 
 /** Items as a flat, ordered list with depth (what the editor works with). */
-export async function getMenuItemsFlat(menuId: string): Promise<EditorItem[]> {
+export async function getMenuItemsFlat(siteId: string, menuId: string): Promise<EditorItem[]> {
   const rows = await prisma.menuItem.findMany({
-    where: { menuId },
+    where: { menuId, menu: { siteId } },
     orderBy: { position: "asc" },
   });
   const byParent = new Map<string | null, typeof rows>();

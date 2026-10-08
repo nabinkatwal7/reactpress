@@ -200,7 +200,7 @@ step 34, ✅ Document and enforce sandbox (DB via APIs, no raw fs outside upload
 
 step 35, ✅ Add Network model; support many Sites under one network → create a second site
 step 36, ✅ Build Network Admin UI (sites, users, network plugins/themes) → super admin can manage network
-step 37, Scope posts, pages, media, menus, settings by `siteId` → site A cannot read site B content
+step 37, ✅ Scope posts, pages, media, menus, settings by `siteId` → site A cannot read site B content
 step 38, Add Super Admin flag and per-site role membership → caps differ by site
 step 39, Resolve site by domain or `/site-slug` path in middleware → correct site serves public pages
 

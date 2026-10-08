@@ -18,7 +18,7 @@ async function main() {
     { label: "Post", objectType: "post", objectId: post.id, depth: 1 },
     { label: "Draft", objectType: "post", objectId: draft.id, depth: 0 },
   ]);
-  const flat = await getMenuItemsFlat(menu.id);
+  const flat = await getMenuItemsFlat(site.id, menu.id);
   console.assert(flat.map((i) => i.depth).join() === "0,1,0", "depth round-trips");
 
   let bad = false;
@@ -28,7 +28,7 @@ async function main() {
     bad = true;
   }
   console.assert(bad, "foreign target rejected");
-  console.assert((await getMenuItemsFlat(menu.id)).length === 3, "failed save leaves items intact");
+  console.assert((await getMenuItemsFlat(site.id, menu.id)).length === 3, "failed save leaves items intact");
 
   await setMenuLocation(site.id, "primary", menu.id);
   const resolved = await getMenuForLocation(site.id, "primary");

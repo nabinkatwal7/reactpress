@@ -17,7 +17,7 @@ export default async function EditMenuPage({ params }: Props) {
   if (!menu) notFound();
 
   const [items, posts, pages] = await Promise.all([
-    getMenuItemsFlat(id),
+    getMenuItemsFlat(siteId, id),
     prisma.post.findMany({
       where: { siteId, type: "post", status: "publish" },
       select: { id: true, title: true },
