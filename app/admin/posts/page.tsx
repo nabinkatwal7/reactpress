@@ -1,75 +1,106 @@
-import { listPosts } from "@/lib/posts";
+import { BulkList } from "@/components/admin/bulk-list";
+import { Pagination, SearchBox, StatusTabs } from "@/components/admin/list-controls";
+import { PageHeader, PrimaryLink } from "@/components/admin/page-header";
+import { queryPosts, statusCounts } from "@/lib/content-list";
 import { getPostType } from "@/lib/registry";
 import { requireSiteId } from "@/lib/site";
+import { postStatusSchema } from "@/lib/validations/post";
 import Link from "next/link";
-import { deletePostAction } from "./actions";
+import { bulkPostsAction } from "./actions";
 
 export const instant = false;
 
-type Props = { searchParams: Promise<{ type?: string; taxonomy?: string; term?: string }> };
+type Props = {
+  searchParams: Promise<{
+    type?: string;
+    status?: string;
+    q?: string;
+    page?: string;
+    taxonomy?: string;
+    term?: string;
+  }>;
+};
 
 export default async function AdminPostsPage({ searchParams }: Props) {
-  const { type, taxonomy, term } = await searchParams;
+  const sp = await searchParams;
   const siteId = await requireSiteId();
-  const posts = await listPosts(siteId, { type, taxonomy, term });
+  const type = sp.type ?? "post";
+  const status = postStatusSchema.safeParse(sp.status);
+  const page = Math.max(Number(sp.page) || 1, 1);
+
+  const [{ items, total, pages }, counts, typeDef] = await Promise.all([
+    queryPosts(siteId, {
+      type,
+      status: status.success ? status.data : undefined,
+      q: sp.q,
+      taxonomy: sp.taxonomy,
+      term: sp.term,
+      page,
+    }),
+    statusCounts(siteId, "post", type),
+    getPostType(siteId, type),
+  ]);
+
+  const path = "/admin/posts";
+  const params = { type: sp.type, status: sp.status, q: sp.q, taxonomy: sp.taxonomy, term: sp.term };
+  const inTrash = status.success && status.data === "trash";
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-neutral-500">Admin</p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {type ? (await getPostType(siteId, type))?.label ?? type : "Posts"}
-          </h1>
-          {term ? (
-            <p className="text-sm text-neutral-500">
-              Filtered by {taxonomy ?? "term"}: {term} ·{" "}
-              <Link href="/admin/posts" className="underline">
-                clear
-              </Link>
-            </p>
-          ) : null}
-        </div>
-        <Link
-          href={type ? `/admin/posts/new?type=${type}` : "/admin/posts/new"}
-          className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white"
-        >
-          Add post
-        </Link>
+    <main className="flex flex-1 flex-col gap-4 p-8">
+      <PageHeader
+        title={typeDef?.label ?? "Posts"}
+        actions={<PrimaryLink href={sp.type ? `/admin/posts/new?type=${sp.type}` : "/admin/posts/new"}>Add new</PrimaryLink>}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <StatusTabs path={path} params={params} counts={counts} active={status.success ? status.data : undefined} />
+        <SearchBox path={path} params={params} q={sp.q} />
       </div>
 
-      {posts.length === 0 ? (
-        <p className="text-sm text-neutral-600">No posts yet.</p>
+      {sp.term ? (
+        <p className="text-sm text-neutral-500">
+          Filtered by {sp.taxonomy ?? "term"}: {sp.term} ·{" "}
+          <Link href={{ pathname: path, query: { ...params, taxonomy: undefined, term: undefined } }} className="underline">
+            clear
+          </Link>
+        </p>
+      ) : null}
+
+      {items.length === 0 ? (
+        <p className="text-sm text-neutral-600">No posts found.</p>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
-          {posts.map((post) => (
-            <li
-              key={post.id}
-              className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-            >
-              <div className="min-w-0">
-                <Link
-                  href={`/admin/posts/${post.id}`}
-                  className="font-medium hover:underline"
-                >
+        <BulkList
+          onApply={bulkPostsAction}
+          actions={
+            inTrash
+              ? [
+                  { value: "restore", label: "Restore to draft" },
+                  { value: "delete", label: "Delete permanently", confirm: "Permanently delete the selected items?" },
+                ]
+              : [
+                  { value: "publish", label: "Publish" },
+                  { value: "draft", label: "Move to draft" },
+                  { value: "trash", label: "Move to trash" },
+                ]
+          }
+          rows={items.map((post) => ({
+            id: post.id,
+            node: (
+              <>
+                <Link href={`/admin/posts/${post.id}`} className="font-medium hover:underline">
                   {post.title}
                 </Link>
                 <p className="truncate text-neutral-500">
-                  /{post.slug} · {post.status}
+                  /{post.slug} · {post.status} · {post.author?.name ?? post.author?.email ?? "—"}
+                  {post.terms.length ? ` · ${post.terms.map((t) => t.term.name).join(", ")}` : ""}
                 </p>
-              </div>
-              <form action={deletePostAction.bind(null, post.id)}>
-                <button
-                  type="submit"
-                  className="text-red-600 hover:underline"
-                >
-                  Delete
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
+              </>
+            ),
+          }))}
+        />
       )}
+
+      <Pagination path={path} params={params} page={page} pages={pages} total={total} />
     </main>
   );
 }

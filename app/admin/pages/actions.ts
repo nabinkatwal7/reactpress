@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { Cap, can } from "@/lib/caps";
 import { createPage, deletePage, updatePage } from "@/lib/pages";
+import { runBulk } from "@/lib/content-list";
 import { requireSiteId } from "@/lib/site";
 import { createPageSchema, updatePageSchema } from "@/lib/validations/page";
 import { revalidatePath } from "next/cache";
@@ -63,4 +64,11 @@ export async function deletePageAction(id: string) {
   await deletePage(siteId, id);
   revalidatePath("/admin/pages");
   redirect("/admin/pages");
+}
+
+export async function bulkPagesAction(ids: string[], action: string) {
+  const userId = await requireEditPages();
+  const result = await runBulk(userId, await requireSiteId(), "page", ids, action);
+  if ("count" in result) revalidatePath("/admin/pages");
+  return result;
 }

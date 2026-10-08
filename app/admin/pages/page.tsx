@@ -1,59 +1,75 @@
-import { PageHeader } from "@/components/admin/page-header";
-import { listPages } from "@/lib/pages";
+import { BulkList } from "@/components/admin/bulk-list";
+import { Pagination, SearchBox, StatusTabs } from "@/components/admin/list-controls";
+import { PageHeader, PrimaryLink } from "@/components/admin/page-header";
+import { queryPages, statusCounts } from "@/lib/content-list";
 import { requireSiteId } from "@/lib/site";
+import { pageStatusSchema } from "@/lib/validations/page";
 import Link from "next/link";
-import { deletePageAction } from "./actions";
+import { bulkPagesAction } from "./actions";
 
 export const instant = false;
 
-export default async function AdminPagesPage() {
+type Props = { searchParams: Promise<{ status?: string; q?: string; page?: string }> };
+
+export default async function AdminPagesPage({ searchParams }: Props) {
+  const sp = await searchParams;
   const siteId = await requireSiteId();
-  const pages = await listPages(siteId);
+  const status = pageStatusSchema.safeParse(sp.status);
+  const page = Math.max(Number(sp.page) || 1, 1);
+
+  const [{ items, total, pages }, counts] = await Promise.all([
+    queryPages(siteId, { status: status.success ? status.data : undefined, q: sp.q, page }),
+    statusCounts(siteId, "page"),
+  ]);
+
+  const path = "/admin/pages";
+  const params = { status: sp.status, q: sp.q };
+  const inTrash = status.success && status.data === "trash";
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-8">
-      <div className="flex items-center justify-between gap-4">
-        <PageHeader title="Pages" />
-        <Link
-          href="/admin/pages/new"
-          className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white"
-        >
-          Add page
-        </Link>
+    <main className="flex flex-1 flex-col gap-4 p-8">
+      <PageHeader title="Pages" actions={<PrimaryLink href="/admin/pages/new">Add new</PrimaryLink>} />
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <StatusTabs path={path} params={params} counts={counts} active={status.success ? status.data : undefined} />
+        <SearchBox path={path} params={params} q={sp.q} />
       </div>
 
-      {pages.length === 0 ? (
-        <p className="text-sm text-neutral-600">No pages yet.</p>
+      {items.length === 0 ? (
+        <p className="text-sm text-neutral-600">No pages found.</p>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
-          {pages.map((page) => (
-            <li
-              key={page.id}
-              className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-            >
-              <div className="min-w-0">
-                <Link
-                  href={`/admin/pages/${page.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {page.title}
+        <BulkList
+          onApply={bulkPagesAction}
+          actions={
+            inTrash
+              ? [
+                  { value: "restore", label: "Restore to draft" },
+                  { value: "delete", label: "Delete permanently", confirm: "Permanently delete the selected items?" },
+                ]
+              : [
+                  { value: "publish", label: "Publish" },
+                  { value: "draft", label: "Move to draft" },
+                  { value: "trash", label: "Move to trash" },
+                ]
+          }
+          rows={items.map((p) => ({
+            id: p.id,
+            node: (
+              <>
+                <Link href={`/admin/pages/${p.id}`} className="font-medium hover:underline">
+                  {p.title}
                 </Link>
                 <p className="truncate text-neutral-500">
-                  /{page.slug} · {page.status}
+                  /{p.slug} · {p.status}
+                  {p.parent ? ` · child of ${p.parent.title}` : ""}
                 </p>
-              </div>
-              <form action={deletePageAction.bind(null, page.id)}>
-                <button
-                  type="submit"
-                  className="text-red-600 hover:underline"
-                >
-                  Delete
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
+              </>
+            ),
+          }))}
+        />
       )}
+
+      <Pagination path={path} params={params} page={page} pages={pages} total={total} />
     </main>
   );
 }

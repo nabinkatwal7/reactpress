@@ -109,3 +109,40 @@ export async function setFeaturedMedia(siteId: string, postId: string, mediaId: 
   });
   return res.count > 0;
 }
+
+export const MEDIA_PER_PAGE = 24;
+
+/** Paged media list with filename search and an optional image/other filter. */
+export async function queryMedia(
+  siteId: string,
+  q: { q?: string; kind?: "image" | "other"; page?: number } = {},
+) {
+  const search = q.q?.trim();
+  const where = {
+    siteId,
+    ...(search ? { filename: { contains: search, mode: "insensitive" as const } } : {}),
+    ...(q.kind === "image"
+      ? { mimeType: { startsWith: "image/" } }
+      : q.kind === "other"
+        ? { NOT: { mimeType: { startsWith: "image/" } } }
+        : {}),
+  };
+  const [items, total] = await Promise.all([
+    prisma.media.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (Math.max(q.page ?? 1, 1) - 1) * MEDIA_PER_PAGE,
+      take: MEDIA_PER_PAGE,
+    }),
+    prisma.media.count({ where }),
+  ]);
+  return { items, total, pages: Math.max(Math.ceil(total / MEDIA_PER_PAGE), 1) };
+}
+
+export async function bulkDeleteMedia(siteId: string, ids: string[]) {
+  let count = 0;
+  for (const id of ids.slice(0, 200)) {
+    if (await deleteMedia(siteId, id)) count += 1;
+  }
+  return count;
+}

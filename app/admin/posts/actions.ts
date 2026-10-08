@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { Cap, can } from "@/lib/caps";
 import { createPost, deletePost, updatePost } from "@/lib/posts";
+import { runBulk } from "@/lib/content-list";
 import { requireSiteId } from "@/lib/site";
 import { createPostSchema, updatePostSchema } from "@/lib/validations/post";
 import { revalidatePath } from "next/cache";
@@ -73,4 +74,11 @@ export async function deletePostAction(id: string) {
   await deletePost(siteId, id);
   revalidatePath("/admin/posts");
   redirect("/admin/posts");
+}
+
+export async function bulkPostsAction(ids: string[], action: string) {
+  const userId = await requireEditPosts();
+  const result = await runBulk(userId, await requireSiteId(), "post", ids, action);
+  if ("count" in result) revalidatePath("/admin/posts");
+  return result;
 }
