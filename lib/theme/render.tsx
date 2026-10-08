@@ -3,7 +3,10 @@ import { getTaxonomy } from "@/lib/registry";
 import { searchContent } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
+import { auth } from "@/auth";
+import { Cap, can } from "@/lib/caps";
 import { buildThemeContext, cssVars } from "./context";
+import { getDraft, type CustomizerValues } from "./customizer";
 import { loadArchive, loadPage, loadPageById, loadPostList, loadSinglePost } from "./data";
 import { getActiveThemeSlug, loadTheme } from "./themes";
 import { resolveTemplate, templateCandidates, type HierarchyInfo } from "./hierarchy";
@@ -22,13 +25,24 @@ type Loaded = {
   ctx: ThemeContext;
   /** Per-site template overrides (hierarchy name → template). */
   overrides: Record<string, string>;
+  /** Draft customizer values when previewing. */
+  draft: CustomizerValues | null;
 };
 
-async function loadActive(): Promise<Loaded> {
+/** The draft to preview, only for signed-in admins who asked for it (`?rp_preview=1`). */
+async function previewDraft(siteId: string, manifest: ThemeManifest, wanted: boolean): Promise<CustomizerValues | null> {
+  if (!wanted) return null;
+  const session = await auth();
+  if (!session?.user?.id || !(await can(session.user.id, Cap.manageOptions))) return null;
+  return getDraft(siteId, manifest);
+}
+
+async function loadActive(preview = false): Promise<Loaded> {
   const siteId = await requireSiteId();
   const theme = await loadTheme(await getActiveThemeSlug(siteId));
-  const ctx = await buildThemeContext(siteId, theme.manifest);
-  return { siteId, manifest: theme.manifest, module: theme.module, ctx, overrides: {} };
+  const draft = await previewDraft(siteId, theme.manifest, preview);
+  const ctx = await buildThemeContext(siteId, theme.manifest, { draft });
+  return { siteId, manifest: theme.manifest, module: theme.module, ctx, overrides: {}, draft };
 }
 
 function frame(loaded: Loaded, template: string, props: Record<string, unknown>): ReactElement {
@@ -60,11 +74,13 @@ function render(loaded: Loaded, info: HierarchyInfo, props: Record<string, unkno
   return frame(loaded, resolveTemplate(templateCandidates(info), available, loaded.overrides), props);
 }
 
-export async function renderHome(page = 1): Promise<ReactElement> {
-  const loaded = await loadActive();
+export async function renderHome(page = 1, preview = false): Promise<ReactElement> {
+  const loaded = await loadActive(preview);
   const settings = await getSettings(loaded.siteId);
-  if (settings.homepage_mode === "page" && settings.homepage_page_id) {
-    const p = await loadPageById(loaded.siteId, settings.homepage_page_id);
+  const mode = loaded.draft?.homepage_mode ?? settings.homepage_mode;
+  const pageId = loaded.draft ? loaded.draft.homepage_page_id : settings.homepage_page_id;
+  if (mode === "page" && pageId) {
+    const p = await loadPageById(loaded.siteId, pageId);
     if (p) return render(loaded, { kind: "front-page", slug: p.slug }, { page: p });
   }
   const list = await loadPostList(loaded.siteId, { page });
@@ -72,33 +88,33 @@ export async function renderHome(page = 1): Promise<ReactElement> {
 }
 
 /** Resolve a catch-all path. Returns null when nothing matches (caller should 404). */
-export async function renderPath(path: string[], page = 1): Promise<ReactElement | null> {
+export async function renderPath(path: string[], page = 1, preview = false): Promise<ReactElement | null> {
   const siteId = await requireSiteId();
   const settings = await getSettings(siteId);
 
   if (path.length === 2 && path[0] === settings.post_base) {
     const single = await loadSinglePost(siteId, path[1]);
     if (!single) return null;
-    return render(await loadActive(), { kind: "single", type: single.post.type, slug: path[1] }, single);
+    return render(await loadActive(preview), { kind: "single", type: single.post.type, slug: path[1] }, single);
   }
 
   if (path.length === 1) {
     const p = await loadPage(siteId, path[0]);
     if (!p) return null;
-    return render(await loadActive(), { kind: "page", slug: p.slug }, { page: p });
+    return render(await loadActive(preview), { kind: "page", slug: p.slug }, { page: p });
   }
 
   if (path.length === 2 && (await getTaxonomy(siteId, path[0]))) {
     const archive = await loadArchive(siteId, path[0], path[1], page);
     if (!archive) return null;
-    return render(await loadActive(), { kind: "archive", taxonomy: path[0], term: path[1] }, archive);
+    return render(await loadActive(preview), { kind: "archive", taxonomy: path[0], term: path[1] }, archive);
   }
 
   return null;
 }
 
-export async function renderSearch(query: string): Promise<ReactElement> {
-  const loaded = await loadActive();
+export async function renderSearch(query: string, preview = false): Promise<ReactElement> {
+  const loaded = await loadActive(preview);
   const results = query.trim() ? await searchContent(loaded.siteId, query, { limit: 20 }) : [];
   return render(loaded, { kind: "search" }, {
     query,

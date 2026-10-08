@@ -109,6 +109,7 @@ model Site {
   settings      Setting[]
   themes        ThemeInstall[]
   templateParts TemplatePart[]
+  themeMods ThemeMods[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -434,4 +435,17 @@ model TemplatePart {
   updatedAt DateTime @updatedAt
 
   @@unique([siteId, theme, slug])
+}
+
+/// Customizer state per site+theme: `published` is live, `draft` is what the admin is previewing.
+model ThemeMods {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  theme     String
+  published Json     @default("{}")
+  draft     Json?
+  updatedAt DateTime @updatedAt
+
+  @@unique([siteId, theme])
 }

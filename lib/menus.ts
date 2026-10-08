@@ -132,10 +132,14 @@ export async function getMenuForLocation(siteId: string, location: string): Prom
   const assignment = await prisma.menuLocation.findUnique({
     where: { siteId_location: { siteId, location } },
   });
-  if (!assignment) return [];
+  return assignment ? getResolvedMenu(siteId, assignment.menuId) : [];
+}
 
+/** A menu's items as a link tree for themes (also used by the customizer preview). */
+export async function getResolvedMenu(siteId: string, menuId: string): Promise<ResolvedMenuItem[]> {
+  if (!(await getMenu(siteId, menuId))) return [];
   const rows = await prisma.menuItem.findMany({
-    where: { menuId: assignment.menuId },
+    where: { menuId },
     orderBy: { position: "asc" },
   });
   const [posts, pages] = await Promise.all([

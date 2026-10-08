@@ -1,53 +1,37 @@
-import { getMenuForLocation } from "@/lib/menus";
+import { getMenuForLocation, getResolvedMenu } from "@/lib/menus";
 import { getSettings } from "@/lib/settings";
+import { getPublishedMods, type CustomizerValues } from "./customizer";
+import type { ThemeManifest } from "./manifest";
+import { resolveMods } from "./mods";
 import { getPartContent } from "./parts";
-import { customizerDefaults, type ThemeManifest } from "./manifest";
-import type { ModValue, ThemeContext } from "./types";
+import type { ThemeContext } from "./types";
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
+export { cssVars, resolveMods } from "./mods";
 
-/** Customizer values for a theme: defaults, then the site's saved values (typed against the manifest). */
-export function resolveMods(manifest: ThemeManifest, saved: Record<string, unknown> = {}) {
-  const mods: Record<string, ModValue> = customizerDefaults(manifest);
-  for (const field of manifest.customizer.settings) {
-    const v = saved[field.key];
-    if (v === undefined) continue;
-    if (field.type === "checkbox" && typeof v === "boolean") mods[field.key] = v;
-    else if (field.type === "color" && typeof v === "string" && HEX.test(v)) mods[field.key] = v;
-    else if (field.type === "select" && typeof v === "string" && field.options?.some((o) => o.value === v)) mods[field.key] = v;
-    else if ((field.type === "text" || field.type === "image") && typeof v === "string") mods[field.key] = v.slice(0, 500);
-  }
-  return mods;
-}
-
-/** CSS custom properties (`--rp-<key>`) for every color setting; values are validated hex only. */
-export function cssVars(manifest: ThemeManifest, mods: Record<string, ModValue>): Record<string, string> {
-  const vars: Record<string, string> = {};
-  for (const f of manifest.customizer.settings) {
-    const v = mods[f.key];
-    if (f.type === "color" && typeof v === "string" && HEX.test(v)) vars[`--rp-${f.key}`] = v;
-  }
-  return vars;
-}
-
+/**
+ * Build the context handed to templates and parts. With a `draft`, unpublished customizer
+ * values (theme options, menus) are used instead of the live ones, for admin preview.
+ */
 export async function buildThemeContext(
   siteId: string,
   manifest: ThemeManifest,
-  opts: { savedMods?: Record<string, unknown>; preview?: boolean } = {},
+  opts: { draft?: CustomizerValues | null } = {},
 ): Promise<ThemeContext> {
+  const draft = opts.draft ?? null;
   const settings = await getSettings(siteId);
-  const [primary, footer] = await Promise.all([
-    getMenuForLocation(siteId, "primary"),
-    getMenuForLocation(siteId, "footer"),
+  const [mods, primary, footer, partContent] = await Promise.all([
+    draft ? Promise.resolve(draft.mods) : getPublishedMods(siteId, manifest),
+    draft ? (draft.menus.primary ? getResolvedMenu(siteId, draft.menus.primary) : []) : getMenuForLocation(siteId, "primary"),
+    draft ? (draft.menus.footer ? getResolvedMenu(siteId, draft.menus.footer) : []) : getMenuForLocation(siteId, "footer"),
+    getPartContent(siteId, manifest.slug),
   ]);
-  const partContent = await getPartContent(siteId, manifest.slug);
   return {
     site: { title: settings.site_title, tagline: settings.tagline },
     theme: { slug: manifest.slug },
-    mods: resolveMods(manifest, opts.savedMods),
+    mods: resolveMods(manifest, mods),
     menus: { primary, footer },
     partContent,
     postBase: settings.post_base,
-    preview: opts.preview ?? false,
+    preview: draft !== null,
   };
 }
