@@ -88,11 +88,24 @@ model RoleCapability {
   @@id([roleId, capabilityId])
 }
 
+/// A group of sites that share users. Every site belongs to exactly one network.
+model Network {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  sites     Site[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Site {
   id            String         @id @default(cuid())
+  networkId     String
+  network       Network        @relation(fields: [networkId], references: [id])
   name          String
   slug          String         @unique
-  domain        String?
+  /// Optional custom domain (lowercase hostname, no port). Unique across the install.
+  domain        String?        @unique
   isDefault     Boolean        @default(false)
   posts         Post[]
   pages         Page[]

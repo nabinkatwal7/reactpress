@@ -63,6 +63,12 @@ async function seedRolesAndCaps() {
 }
 
 async function seedDefaultSite() {
+  const network = await prisma.network.upsert({
+    where: { slug: "main" },
+    update: {},
+    create: { name: "ReactPress network", slug: "main" },
+  });
+
   const existingDefault = await prisma.site.findFirst({
     where: { isDefault: true },
   });
@@ -75,6 +81,7 @@ async function seedDefaultSite() {
       name: "ReactPress",
       slug: "main",
       isDefault: true,
+      networkId: network.id,
     },
   });
 }
