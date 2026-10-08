@@ -181,7 +181,7 @@ step 23, ✅ Build admin dashboard (at a glance, activity, quick draft) → dash
 
 ### Phase D — Themes
 
-step 24, Define theme package format (`theme.json`, templates folder, assets) → document author rules
+step 24, ✅ Define theme package format (`theme.json`, templates folder, assets) → document author rules
 step 25, Ship a default theme and theme install/activate API → switching theme changes public site
 step 26, Implement template hierarchy resolver → correct template for home/single/page/archive/404
 step 27, Support template parts (header/footer) editable via theme → parts render on all pages
