@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const pageStatusSchema = z.enum(["draft", "publish", "scheduled", "private", "trash"]);
 
-export const pageContentSchema = z.array(z.record(z.string(), z.unknown())).default([]);
+export const pageContentSchema = z.array(z.object({ type: z.string().min(1) }).passthrough()).default([]);
 
 const slugField = z
   .string()

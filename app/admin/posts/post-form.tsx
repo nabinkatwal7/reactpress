@@ -3,6 +3,8 @@
 import { postFormSchema, type PostFormValues } from "@/lib/validations/post";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { BlockEditor } from "@/components/admin/block-editor";
+import { toBlocks, type Block } from "@/lib/blocks";
 import { useForm } from "react-hook-form";
 import { createPostAction, updatePostAction } from "./actions";
 
@@ -24,6 +26,13 @@ type Props = {
 export function PostForm({ mode, postId, postType, media = [], defaults }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [blocks, setBlocks] = useState<Block[]>(() => {
+    try {
+      return toBlocks(JSON.parse(defaults?.contentText || "[]"));
+    } catch {
+      return [];
+    }
+  });
   const {
     register,
     handleSubmit,
@@ -45,20 +54,7 @@ export function PostForm({ mode, postId, postType, media = [], defaults }: Props
     setServerError(null);
     setSaved(false);
 
-    let content: Record<string, unknown>[] = [];
-    if (values.contentText.trim()) {
-      try {
-        const parsed = JSON.parse(values.contentText) as unknown;
-        if (!Array.isArray(parsed)) {
-          setServerError("Content must be a JSON array");
-          return;
-        }
-        content = parsed as Record<string, unknown>[];
-      } catch {
-        setServerError("Content must be valid JSON");
-        return;
-      }
-    }
+    const content = blocks;
 
     const slug = values.slug.trim() || undefined;
     if (slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
@@ -97,7 +93,7 @@ export function PostForm({ mode, postId, postType, media = [], defaults }: Props
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex max-w-xl flex-col gap-4"
+      className="flex max-w-3xl flex-col gap-4"
       noValidate
     >
       <label className="flex flex-col gap-1 text-sm">
@@ -163,15 +159,10 @@ export function PostForm({ mode, postId, postType, media = [], defaults }: Props
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Content (JSON array)
-        <textarea
-          rows={8}
-          className="rounded border border-neutral-300 px-3 py-2 font-mono text-sm"
-          placeholder='[{"type":"paragraph","text":"Hello"}]'
-          {...register("contentText")}
-        />
-      </label>
+      <div className="flex flex-col gap-1 text-sm">
+        Content
+        <BlockEditor value={blocks} onChange={setBlocks} />
+      </div>
 
       {serverError ? (
         <p className="text-sm text-red-600">{serverError}</p>
