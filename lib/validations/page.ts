@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const pageStatusSchema = z.enum(["draft", "publish", "private", "trash"]);
+export const pageStatusSchema = z.enum(["draft", "publish", "scheduled", "private", "trash"]);
 
 export const pageContentSchema = z.array(z.record(z.string(), z.unknown())).default([]);
 
@@ -14,16 +14,18 @@ export const createPageSchema = z.object({
   slug: slugField.optional(),
   status: pageStatusSchema.default("draft"),
   content: pageContentSchema.optional(),
+  scheduledAt: z.iso.datetime().nullable().optional(),
   parentId: z.string().min(1).nullable().optional(),
-});
+}).superRefine(needsSchedule);
 
 export const updatePageSchema = z.object({
   title: z.string().trim().min(1, "Title is required").optional(),
   slug: slugField.optional(),
   status: pageStatusSchema.optional(),
   content: pageContentSchema.optional(),
+  scheduledAt: z.iso.datetime().nullable().optional(),
   parentId: z.string().min(1).nullable().optional(),
-});
+}).superRefine(needsSchedule);
 
 /** Client form schema — empty slug allowed, stripped before submit. */
 export const pageFormSchema = z.object({
@@ -31,7 +33,17 @@ export const pageFormSchema = z.object({
   slug: z.string().trim(),
   status: pageStatusSchema,
   contentText: z.string(),
+  scheduledAt: z.string().optional(),
 });
+
+function needsSchedule(v: { status?: string; scheduledAt?: string | null }, ctx: z.RefinementCtx) {
+  if (v.status !== "scheduled") return;
+  if (!v.scheduledAt) {
+    ctx.addIssue({ code: "custom", path: ["scheduledAt"], message: "Schedule date is required" });
+  } else if (new Date(v.scheduledAt).getTime() <= Date.now()) {
+    ctx.addIssue({ code: "custom", path: ["scheduledAt"], message: "Schedule date must be in the future" });
+  }
+}
 
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 export type UpdatePageInput = z.infer<typeof updatePageSchema>;

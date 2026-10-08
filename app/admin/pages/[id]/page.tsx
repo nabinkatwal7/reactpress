@@ -6,6 +6,11 @@ import { PageForm } from "../page-form";
 
 export const instant = false;
 
+function toLocalInput(d: Date) {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditPagePage({ params }: Props) {
@@ -32,6 +37,7 @@ export default async function EditPagePage({ params }: Props) {
           slug: page.slug,
           status: page.status,
           contentText,
+          scheduledAt: page.scheduledAt ? toLocalInput(page.scheduledAt) : "",
         }}
       />
     </main>

@@ -1,5 +1,6 @@
 import type { Post, PostStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { syncPublishJob } from "@/lib/jobs";
 import { createRevision } from "@/lib/revisions";
 import { slugify } from "@/lib/slug";
 import { withSiteId } from "@/lib/site";
@@ -54,8 +55,10 @@ export async function createPost(
       status,
       content: (input.content ?? []) as Prisma.InputJsonValue,
       publishedAt: status === "publish" ? new Date() : null,
+      scheduledAt: status === "scheduled" ? new Date(input.scheduledAt!) : null,
     },
   });
+  await syncPublishJob(siteId, "post", created.id, created.status, created.scheduledAt);
   await createRevision(siteId, "post", created.id, authorId, {
     title: created.title,
     content: created.content,
@@ -78,6 +81,10 @@ export async function updatePost(
     if (input.status === "publish" && !existing.publishedAt) {
       data.publishedAt = new Date();
     }
+    data.scheduledAt =
+      input.status === "scheduled" && input.scheduledAt ? new Date(input.scheduledAt) : null;
+  } else if (input.scheduledAt !== undefined && existing.status === "scheduled" && input.scheduledAt) {
+    data.scheduledAt = new Date(input.scheduledAt);
   }
   if (input.content !== undefined) {
     data.content = input.content as Prisma.InputJsonValue;
@@ -92,6 +99,7 @@ export async function updatePost(
     where: { id },
     data,
   });
+  await syncPublishJob(siteId, "post", id, updated.status, updated.scheduledAt);
   if (input.title !== undefined || input.content !== undefined) {
     await createRevision(siteId, "post", id, existing.authorId, {
       title: updated.title,

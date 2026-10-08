@@ -6,6 +6,11 @@ import { PostForm } from "../post-form";
 
 export const instant = false;
 
+function toLocalInput(d: Date) {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditPostPage({ params }: Props) {
@@ -32,6 +37,7 @@ export default async function EditPostPage({ params }: Props) {
           slug: post.slug,
           status: post.status,
           contentText,
+          scheduledAt: post.scheduledAt ? toLocalInput(post.scheduledAt) : "",
         }}
       />
     </main>

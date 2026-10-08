@@ -12,8 +12,9 @@ type Props = {
   defaults?: {
     title: string;
     slug: string;
-    status: "draft" | "publish" | "private" | "trash";
+    status: "draft" | "publish" | "scheduled" | "private" | "trash";
     contentText: string;
+    scheduledAt?: string;
   };
 };
 
@@ -23,6 +24,7 @@ export function PageForm({ mode, pageId, defaults }: Props) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PageFormValues>({
     resolver: zodResolver(pageFormSchema),
@@ -31,6 +33,7 @@ export function PageForm({ mode, pageId, defaults }: Props) {
       slug: defaults?.slug ?? "",
       status: defaults?.status ?? "draft",
       contentText: defaults?.contentText ?? "",
+      scheduledAt: defaults?.scheduledAt ?? "",
     },
   });
 
@@ -64,6 +67,10 @@ export function PageForm({ mode, pageId, defaults }: Props) {
       slug,
       status: values.status,
       content,
+      scheduledAt:
+        values.status === "scheduled" && values.scheduledAt
+          ? new Date(values.scheduledAt).toISOString()
+          : null,
     };
 
     if (mode === "create") {
@@ -114,10 +121,22 @@ export function PageForm({ mode, pageId, defaults }: Props) {
         >
           <option value="draft">Draft</option>
           <option value="publish">Publish</option>
+          <option value="scheduled">Scheduled</option>
           <option value="private">Private</option>
           <option value="trash">Trash</option>
         </select>
       </label>
+
+      {watch("status") === "scheduled" ? (
+        <label className="flex flex-col gap-1 text-sm">
+          Publish at
+          <input
+            type="datetime-local"
+            className="rounded border border-neutral-300 px-3 py-2"
+            {...register("scheduledAt")}
+          />
+        </label>
+      ) : null}
 
       <label className="flex flex-col gap-1 text-sm">
         Content (JSON array)

@@ -37,7 +37,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     );
   }
 
-  if (parsed.data.status === "publish") {
+  if ((parsed.data.status === "publish" || parsed.data.status === "scheduled")) {
     const canPublish = await requireApiAdmin(Cap.publishPosts);
     if (isApiError(canPublish)) return canPublish.error;
   }

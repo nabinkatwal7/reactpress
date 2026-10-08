@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (parsed.data.status === "publish") {
+  if ((parsed.data.status === "publish" || parsed.data.status === "scheduled")) {
     const canPublish = await requireApiAdmin(Cap.publishPosts);
     if (isApiError(canPublish)) return canPublish.error;
   }

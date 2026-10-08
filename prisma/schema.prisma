@@ -95,6 +95,7 @@ model Site {
   posts     Post[]
   pages     Page[]
   revisions Revision[]
+  jobs      Job[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -104,6 +105,7 @@ model Site {
 enum PostStatus {
   draft
   publish
+  scheduled
   private
   trash
 }
@@ -119,6 +121,7 @@ model Post {
   status      PostStatus @default(draft)
   content     Json       @default("[]")
   publishedAt DateTime?
+  scheduledAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -141,6 +144,7 @@ model Page {
   status      PostStatus @default(draft)
   content     Json       @default("[]")
   publishedAt DateTime?
+  scheduledAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -168,4 +172,28 @@ model Revision {
   createdAt  DateTime     @default(now())
 
   @@index([siteId, entityType, entityId, createdAt])
+}
+
+enum JobStatus {
+  pending
+  running
+  done
+  failed
+}
+
+/// DB-backed job queue. Runner claims due pending rows.
+model Job {
+  id        String    @id @default(cuid())
+  siteId    String
+  site      Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json      @default("{}")
+  runAt     DateTime
+  status    JobStatus @default(pending)
+  attempts  Int       @default(0)
+  lastError String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, runAt])
 }

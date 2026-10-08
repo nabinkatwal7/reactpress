@@ -24,7 +24,7 @@ export async function createPostAction(input: unknown) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  if (parsed.data.status === "publish") {
+  if ((parsed.data.status === "publish" || parsed.data.status === "scheduled")) {
     if (!(await can(userId, Cap.publishPosts))) {
       return { error: "Missing publish_posts capability" };
     }
@@ -43,7 +43,7 @@ export async function updatePostAction(id: string, input: unknown) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  if (parsed.data.status === "publish") {
+  if ((parsed.data.status === "publish" || parsed.data.status === "scheduled")) {
     if (!(await can(userId, Cap.publishPosts))) {
       return { error: "Missing publish_posts capability" };
     }
