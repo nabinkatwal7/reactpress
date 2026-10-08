@@ -15,6 +15,7 @@ model User {
   image         String?
   passwordHash  String?
   memberships   SiteMember[]
+  apiTokens     ApiToken[]
   /// Can manage the whole network (sites, users, network themes/plugins).
   isSuperAdmin  Boolean   @default(false)
   accounts      Account[]
@@ -524,5 +525,22 @@ model SiteMember {
   createdAt DateTime @default(now())
 
   @@id([siteId, userId])
+  @@index([userId])
+}
+
+/// Bearer token for the REST API (CLI, scripts). Only a SHA-256 hash is stored; the token is shown once.
+/// It carries its user's authority: what it can do on a site is decided by that user's role there.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  /// First characters of the token, to tell tokens apart in lists.
+  prefix     String
+  tokenHash  String    @unique
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
   @@index([userId])
 }
