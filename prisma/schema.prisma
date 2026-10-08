@@ -19,6 +19,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   posts         Post[]
+  pages         Page[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -92,6 +93,7 @@ model Site {
   domain    String?
   isDefault Boolean  @default(false)
   posts     Post[]
+  pages     Page[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -122,4 +124,26 @@ model Post {
   @@unique([siteId, slug])
   @@index([siteId, status])
   @@index([siteId, createdAt])
+}
+
+model Page {
+  id          String     @id @default(cuid())
+  siteId      String
+  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parentId    String?
+  parent      Page?      @relation("PageTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Page[]     @relation("PageTree")
+  title       String
+  slug        String
+  status      PostStatus @default(draft)
+  content     Json       @default("[]")
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([siteId, slug])
+  @@index([siteId, status])
+  @@index([parentId])
 }
