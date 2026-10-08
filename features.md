@@ -190,7 +190,7 @@ step 29, ✅ Add theme file editor or template override list for power users →
 
 ### Phase E — Plugins
 
-step 30, Define plugin package format (`plugin.json`, `register.ts`) → document author rules
+step 30, ✅ Define plugin package format (`plugin.json`, `register.ts`) → document author rules
 step 31, Build actions/filters hook bus in `lib/hooks` → plugin can `addAction` / `addFilter`
 step 32, Build plugin install, activate, deactivate, delete → active plugins load on boot
 step 33, Allow plugins to register admin menu pages and settings → plugin settings screen works

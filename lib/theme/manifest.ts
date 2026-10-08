@@ -14,7 +14,7 @@ export const TEMPLATE_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const PART_NAMES = ["header", "footer"] as const;
 export type PartName = (typeof PART_NAMES)[number];
 
-const customizerField = z
+export const customizerField = z
   .object({
     key: z.string().regex(/^[a-z][a-z0-9_]*$/, "setting keys are snake_case"),
     label: z.string().min(1).max(100),
