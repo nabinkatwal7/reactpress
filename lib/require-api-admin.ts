@@ -8,7 +8,7 @@ type Ok = { userId: string; /** Set when the request authenticated with an API t
 type Err = { error: NextResponse };
 
 /** Who is calling: an API token (`Authorization: Bearer rp_…`) or the signed-in session. */
-async function identify(): Promise<Ok | "bad-token" | null> {
+export async function identifyCaller(): Promise<Ok | "bad-token" | null> {
   const header = (await headers()).get("authorization");
   if (header) {
     const [scheme, token] = header.split(/\s+/);
@@ -26,7 +26,7 @@ async function identify(): Promise<Ok | "bad-token" | null> {
  * Token requests carry no cookies, so they are not exposed to CSRF.
  */
 export async function requireApiAdmin(capability: CapKey = Cap.accessAdmin): Promise<Ok | Err> {
-  const who = await identify();
+  const who = await identifyCaller();
   if (!who || who === "bad-token") {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "WWW-Authenticate": "Bearer" } }) };
   }

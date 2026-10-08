@@ -1,0 +1,201 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { api, request } from "./client.mjs";
+import { clearConfig, loadConfig, normalizeUrl, saveConfig } from "./config.mjs";
+import { textToBlocks } from "./content.mjs";
+import { printJson, table } from "./output.mjs";
+import { ask, readStdin } from "./prompt.mjs";
+import { scaffold } from "./scaffold.mjs";
+
+const need = (v, usage) => {
+  if (v === undefined || v === true || v === "") throw new Error(`Usage: ${usage}`);
+  return String(v);
+};
+
+/** Post/page body from --content, or --file (a path, or - for stdin). */
+async function bodyFrom(flags) {
+  if (flags.file) return textToBlocks(flags.file === "-" ? await readStdin() : await readFile(String(flags.file), "utf8"));
+  if (typeof flags.content === "string") return textToBlocks(flags.content);
+  return undefined;
+}
+
+const when = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+
+// ---- auth -----------------------------------------------------------------------------------
+
+async function login({ positionals, flags }) {
+  const url = normalizeUrl(need(positionals[0] ?? process.env.REACTPRESS_URL, "reactpress login <site-url> [--email you@example.com]"));
+  const email = String(flags.email ?? process.env.REACTPRESS_EMAIL ?? (await ask("Email: ")));
+  const password = flags["password-stdin"]
+    ? (await readStdin()).replace(/\r?\n$/, "")
+    : String(flags.password ?? process.env.REACTPRESS_PASSWORD ?? (await ask("Password: ", { hidden: true })));
+
+  const { token } = await request(url, null, "POST", "/api/v1/auth/token", { email, password, name: "cli" });
+  const me = await request(url, token, "GET", "/api/admin/me");
+  await saveConfig({ url, token, email });
+  console.log(`Logged in as ${me.user.email} on "${me.site.name}" (${me.super_admin ? "super admin" : "role-based access"}).`);
+}
+
+async function logout() {
+  const { url, token } = await loadConfig();
+  if (url && token) await request(url, token, "DELETE", "/api/admin/tokens/current").catch(() => {});
+  await clearConfig();
+  console.log("Logged out.");
+}
+
+async function whoami({ flags }) {
+  const me = await api("GET", "/api/admin/me");
+  if (flags.json) return printJson(me);
+  const { url } = await loadConfig();
+  console.log(`${me.user.email} on "${me.site.name}" (${url})`);
+  console.log(`Capabilities: ${me.capabilities.join(", ") || "none"}${me.super_admin ? " (super admin)" : ""}`);
+}
+
+// ---- posts and pages --------------------------------------------------------------------------
+
+function contentCommands(kind) {
+  const plural = `${kind}s`;
+  const base = `/api/admin/${plural}`;
+  const usage = (s) => `reactpress ${kind} ${s}`;
+  return {
+    async list({ flags }) {
+      const qs = new URLSearchParams();
+      for (const k of ["status", "type"]) if (typeof flags[k] === "string") qs.set(k, flags[k]);
+      const res = await api("GET", `${base}${qs.size ? `?${qs}` : ""}`);
+      const items = res[plural];
+      if (flags.json) return printJson(items);
+      if (!items.length) return console.log(`No ${plural}.`);
+      console.log(table(["ID", "STATUS", "DATE", "TITLE", "SLUG"], items.map((p) => [p.id, p.status, when(p.publishedAt ?? p.updatedAt), p.title, p.slug])));
+    },
+    async get({ positionals }) {
+      printJson((await api("GET", `${base}/${encodeURIComponent(need(positionals[0], usage("get <id>")))}`))[kind]);
+    },
+    async create({ flags }) {
+      const body = { title: need(flags.title, usage('create --title "Title" [--status publish] [--content text | --file f.md]')), status: String(flags.status ?? "draft") };
+      if (typeof flags.slug === "string") body.slug = flags.slug;
+      if (kind === "post" && typeof flags.type === "string") body.type = flags.type;
+      const content = await bodyFrom(flags);
+      if (content) body.content = content;
+      const created = (await api("POST", base, body))[kind];
+      if (flags.json) return printJson(created);
+      console.log(`Created ${kind} ${created.id} (${created.status}): ${created.title}`);
+    },
+    async update({ positionals, flags }) {
+      const id = need(positionals[0], usage("update <id> [--title T] [--status S] [--slug s] [--content text | --file f.md]"));
+      const body = {};
+      for (const k of ["title", "status", "slug"]) if (typeof flags[k] === "string") body[k] = flags[k];
+      const content = await bodyFrom(flags);
+      if (content) body.content = content;
+      if (!Object.keys(body).length) throw new Error("Nothing to update. Pass --title, --status, --slug, --content or --file");
+      const updated = (await api("PATCH", `${base}/${encodeURIComponent(id)}`, body))[kind];
+      console.log(`Updated ${kind} ${updated.id} (${updated.status}): ${updated.title}`);
+    },
+    async publish({ positionals }) {
+      const id = need(positionals[0], usage("publish <id>"));
+      const p = (await api("PATCH", `${base}/${encodeURIComponent(id)}`, { status: "publish" }))[kind];
+      console.log(`Published ${kind} ${p.id}: ${p.title}`);
+    },
+    async delete({ positionals, flags }) {
+      const id = need(positionals[0], usage("delete <id> --yes"));
+      if (!flags.yes) throw new Error("This permanently deletes the " + kind + ". Add --yes to confirm.");
+      await api("DELETE", `${base}/${encodeURIComponent(id)}`);
+      console.log(`Deleted ${kind} ${id}.`);
+    },
+  };
+}
+
+// ---- plugins and themes --------------------------------------------------------------------------
+
+function extensionCommands(kind, actions) {
+  const plural = `${kind}s`;
+  const path = `/api/admin/${plural}`;
+  const act = (action) => async ({ positionals }) => {
+    const slug = need(positionals[0], `reactpress ${kind} ${action} <slug>`);
+    await api("POST", path, { action, slug });
+    console.log(`${kind} ${slug}: ${action} done.`);
+  };
+  return {
+    async list({ flags }) {
+      const items = (await api("GET", path))[plural];
+      if (flags.json) return printJson(items);
+      console.log(
+        table(
+          ["SLUG", "VERSION", "STATUS", "NAME"],
+          items.map((i) => [i.manifest.slug, i.manifest.version, i.active ? "active" : i.installed ? "installed" : "available", i.manifest.name]),
+        ),
+      );
+    },
+    ...Object.fromEntries(actions.map((a) => [a, act(a)])),
+  };
+}
+
+// ---- users --------------------------------------------------------------------------------------------
+
+const userCommands = {
+  async list({ flags }) {
+    const { members } = await api("GET", "/api/admin/users");
+    if (flags.json) return printJson(members);
+    console.log(table(["ID", "EMAIL", "NAME", "ROLE"], members.map((m) => [m.id, m.email, m.name ?? "", m.isSuperAdmin ? `${m.role} (super admin)` : m.role])));
+  },
+  async add({ positionals, flags }) {
+    const email = need(positionals[0], "reactpress user add <email> --role editor");
+    await api("POST", "/api/admin/users", { email, role: String(flags.role ?? "subscriber") });
+    console.log(`${email} is now ${flags.role ?? "subscriber"} on this site.`);
+  },
+  async role({ positionals }) {
+    const [id, role] = positionals;
+    await api("PATCH", `/api/admin/users/${encodeURIComponent(need(id, "reactpress user role <user-id> <role>"))}`, { role: need(role, "reactpress user role <user-id> <role>") });
+    console.log(`User ${id} is now ${role}.`);
+  },
+  async remove({ positionals }) {
+    const id = need(positionals[0], "reactpress user remove <user-id>");
+    await api("DELETE", `/api/admin/users/${encodeURIComponent(id)}`);
+    console.log(`User ${id} removed from this site.`);
+  },
+  /** Create a network account (super admin only). */
+  async create({ flags }) {
+    const email = need(flags.email, "reactpress user create --email a@b.co [--name N] --password-stdin");
+    const password = flags["password-stdin"] ? (await readStdin()).replace(/\r?\n$/, "") : String(flags.password ?? (await ask("Password: ", { hidden: true })));
+    const { user } = await api("POST", "/api/network/users", { email, name: typeof flags.name === "string" ? flags.name : undefined, password });
+    console.log(`Created ${user.email} (${user.id}). Give it a role with: reactpress user add ${user.email} --role editor`);
+  },
+};
+
+// ---- scaffold + export ----------------------------------------------------------------------------------
+
+async function scaffoldCmd({ positionals, flags }) {
+  const [kind, slug] = positionals;
+  const dir = await scaffold(kind, slug, { baseDir: typeof flags.dir === "string" ? flags.dir : undefined, author: typeof flags.author === "string" ? flags.author : undefined });
+  const registry = kind === "plugin" ? "plugins/registry.ts" : "themes/registry.ts";
+  console.log(`Created ${kind} in ${dir}`);
+  console.log(`Next: register it in ${registry} (one import + one entry, see ${kind}s/README.md), then run \`npm run dev\`.`);
+}
+
+async function exportCmd({ flags }) {
+  const [me, posts, pages, taxonomies] = await Promise.all([
+    api("GET", "/api/admin/me"),
+    api("GET", "/api/admin/posts"),
+    api("GET", "/api/admin/pages"),
+    api("GET", "/api/admin/taxonomies"),
+  ]);
+  const terms = {};
+  for (const t of taxonomies.taxonomies) terms[t.key] = (await api("GET", `/api/admin/terms?taxonomy=${encodeURIComponent(t.key)}`)).terms;
+  const data = { format: "reactpress-export", version: 1, exported_at: new Date().toISOString(), site: me.site, posts: posts.posts, pages: pages.pages, taxonomies: taxonomies.taxonomies, terms };
+  const json = JSON.stringify(data, null, 2) + "\n";
+  if (typeof flags.out === "string") {
+    await writeFile(flags.out, json);
+    console.error(`Exported ${data.posts.length} posts and ${data.pages.length} pages to ${flags.out}`);
+  } else process.stdout.write(json);
+}
+
+export const COMMANDS = {
+  login: { run: login, help: "login <site-url> [--email e] [--password-stdin]   Log in and store an API token" },
+  logout: { run: logout, help: "logout                                          Revoke the stored token and forget it" },
+  whoami: { run: whoami, help: "whoami [--json]                                 Show the logged-in user, site and capabilities" },
+  post: { sub: contentCommands("post"), help: "post list|get|create|update|publish|delete       Manage posts" },
+  page: { sub: contentCommands("page"), help: "page list|get|create|update|publish|delete       Manage pages" },
+  plugin: { sub: extensionCommands("plugin", ["install", "activate", "deactivate", "delete"]), help: "plugin list|install|activate|deactivate|delete  Manage plugins" },
+  theme: { sub: extensionCommands("theme", ["install", "activate", "uninstall"]), help: "theme list|install|activate|uninstall          Manage themes" },
+  user: { sub: userCommands, help: "user list|add|role|remove|create                Manage who can do what on this site" },
+  scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
+  export: { run: exportCmd, help: "export [--out file.json]                         Export posts, pages and terms as JSON" },
+};

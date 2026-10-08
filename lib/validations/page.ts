@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const pageStatusSchema = z.enum(["draft", "publish", "scheduled", "private", "trash"]);
 
-export const pageContentSchema = z.array(z.object({ type: z.string().min(1) }).passthrough()).default([]);
+const blocksSchema = z.array(z.object({ type: z.string().min(1) }).passthrough());
+
+/** Create: missing content means an empty document. */
+export const pageContentSchema = blocksSchema.default([]);
 
 const slugField = z
   .string()
@@ -22,7 +25,7 @@ export const updatePageSchema = z.object({
   title: z.string().trim().min(1, "Title is required").optional(),
   slug: slugField.optional(),
   status: pageStatusSchema.optional(),
-  content: pageContentSchema.optional(),
+  content: blocksSchema.optional(),
   scheduledAt: z.iso.datetime().nullable().optional(),
   parentId: z.string().min(1).nullable().optional(),
 }).superRefine(needsSchedule);
