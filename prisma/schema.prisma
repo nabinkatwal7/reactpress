@@ -96,6 +96,7 @@ model Site {
   pages     Page[]
   revisions Revision[]
   jobs      Job[]
+  terms     Term[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -122,6 +123,7 @@ model Post {
   content     Json       @default("[]")
   publishedAt DateTime?
   scheduledAt DateTime?
+  terms       PostTerm[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -196,4 +198,34 @@ model Job {
   updatedAt DateTime  @updatedAt
 
   @@index([status, runAt])
+}
+
+/// Taxonomy term. taxonomy is a registry key: "category", "tag", or a custom one.
+model Term {
+  id          String     @id @default(cuid())
+  siteId      String
+  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  taxonomy    String
+  name        String
+  slug        String
+  description String?
+  parentId    String?
+  parent      Term?      @relation("TermTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Term[]     @relation("TermTree")
+  posts       PostTerm[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([siteId, taxonomy, slug])
+  @@index([siteId, taxonomy])
+}
+
+model PostTerm {
+  postId String
+  termId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@id([postId, termId])
+  @@index([termId])
 }

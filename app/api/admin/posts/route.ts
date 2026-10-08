@@ -19,8 +19,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
+  const sp = new URL(request.url).searchParams;
   const posts = await listPosts(siteId, {
     status: status?.success ? status.data : undefined,
+    taxonomy: sp.get("taxonomy") ?? undefined,
+    term: sp.get("term") ?? undefined,
   });
   return NextResponse.json({ posts });
 }

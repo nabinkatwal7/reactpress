@@ -162,7 +162,7 @@ step 7, ✅ Build Post model and admin CRUD API (title, slug, status, content JS
 step 8, ✅ Build Page model and CRUD same as posts → pages work independently
 step 9, ✅ Add Revision model and autosave endpoint → can restore an older revision
 step 10, ✅ Add scheduled status + job runner that publishes due posts → schedule works without manual publish
-step 11, Add Category and Tag taxonomies linked to posts → filter posts by term
+step 11, ✅ Add Category and Tag taxonomies linked to posts → filter posts by term
 step 12, Add CPT and custom taxonomy registry (DB + code registration) → register a type and CRUD it
 step 13, Build Media model, upload API, and library UI → upload and attach media to posts
 step 14, Build Comment model, public form, admin moderate (approve/spam/trash) → comments flow works

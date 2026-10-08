@@ -2,6 +2,7 @@ import type { Post, PostStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { syncPublishJob } from "@/lib/jobs";
 import { createRevision } from "@/lib/revisions";
+import { setPostTerms } from "@/lib/terms";
 import { slugify } from "@/lib/slug";
 import { withSiteId } from "@/lib/site";
 import type { CreatePostInput, UpdatePostInput } from "@/lib/validations/post";
@@ -23,18 +24,38 @@ async function uniqueSlug(siteId: string, base: string, excludeId?: string): Pro
   }
 }
 
-export async function listPosts(siteId: string, opts?: { status?: PostStatus }) {
+export async function listPosts(siteId: string, opts?: { status?: PostStatus; taxonomy?: string; term?: string }) {
   return prisma.post.findMany({
-    where: withSiteId(siteId, opts?.status ? { status: opts.status } : {}),
+    where: withSiteId(siteId, {
+      ...(opts?.status ? { status: opts.status } : {}),
+      ...(opts?.term
+        ? {
+            terms: {
+              some: {
+                term: {
+                  slug: opts.term,
+                  ...(opts.taxonomy ? { taxonomy: opts.taxonomy } : {}),
+                },
+              },
+            },
+          }
+        : {}),
+    }),
     orderBy: { updatedAt: "desc" },
-    include: { author: { select: { id: true, name: true, email: true } } },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      terms: { include: { term: true } },
+    },
   });
 }
 
 export async function getPost(siteId: string, id: string) {
   return prisma.post.findFirst({
     where: withSiteId(siteId, { id }),
-    include: { author: { select: { id: true, name: true, email: true } } },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      terms: { include: { term: true } },
+    },
   });
 }
 
@@ -58,6 +79,7 @@ export async function createPost(
       scheduledAt: status === "scheduled" ? new Date(input.scheduledAt!) : null,
     },
   });
+  if (input.termIds?.length) await setPostTerms(siteId, created.id, input.termIds);
   await syncPublishJob(siteId, "post", created.id, created.status, created.scheduledAt);
   await createRevision(siteId, "post", created.id, authorId, {
     title: created.title,
@@ -99,6 +121,7 @@ export async function updatePost(
     where: { id },
     data,
   });
+  if (input.termIds) await setPostTerms(siteId, id, input.termIds);
   await syncPublishJob(siteId, "post", id, updated.status, updated.scheduledAt);
   if (input.title !== undefined || input.content !== undefined) {
     await createRevision(siteId, "post", id, existing.authorId, {

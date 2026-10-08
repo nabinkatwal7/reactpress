@@ -15,6 +15,7 @@ export const createPostSchema = z.object({
   status: postStatusSchema.default("draft"),
   content: postContentSchema.optional(),
   scheduledAt: z.iso.datetime().nullable().optional(),
+  termIds: z.array(z.string().min(1)).optional(),
 }).superRefine(needsSchedule);
 
 export const updatePostSchema = z.object({
@@ -23,6 +24,7 @@ export const updatePostSchema = z.object({
   status: postStatusSchema.optional(),
   content: postContentSchema.optional(),
   scheduledAt: z.iso.datetime().nullable().optional(),
+  termIds: z.array(z.string().min(1)).optional(),
 }).superRefine(needsSchedule);
 
 /** Client form schema — empty slug allowed, stripped before submit. */

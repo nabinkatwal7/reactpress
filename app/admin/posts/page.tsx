@@ -5,9 +5,12 @@ import { deletePostAction } from "./actions";
 
 export const instant = false;
 
-export default async function AdminPostsPage() {
+type Props = { searchParams: Promise<{ taxonomy?: string; term?: string }> };
+
+export default async function AdminPostsPage({ searchParams }: Props) {
+  const { taxonomy, term } = await searchParams;
   const siteId = await requireSiteId();
-  const posts = await listPosts(siteId);
+  const posts = await listPosts(siteId, { taxonomy, term });
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
@@ -15,6 +18,14 @@ export default async function AdminPostsPage() {
         <div>
           <p className="text-sm text-neutral-500">Admin</p>
           <h1 className="text-2xl font-semibold tracking-tight">Posts</h1>
+          {term ? (
+            <p className="text-sm text-neutral-500">
+              Filtered by {taxonomy ?? "term"}: {term} ·{" "}
+              <Link href="/admin/posts" className="underline">
+                clear
+              </Link>
+            </p>
+          ) : null}
         </div>
         <Link
           href="/admin/posts/new"
