@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { syncPublishJob } from "@/lib/jobs";
 import { createRevision } from "@/lib/revisions";
 import { slugify } from "@/lib/slug";
+import { emitFor } from "@/lib/webhooks/webhooks";
 import { withSiteId } from "@/lib/site";
 import type { CreatePageInput, UpdatePageInput } from "@/lib/validations/page";
 
@@ -74,6 +75,7 @@ export async function createPage(
     title: created.title,
     content: created.content,
   });
+  if (created.status === "publish") await emitFor(siteId, "page", "published", created);
   return created;
 }
 
@@ -122,6 +124,8 @@ export async function updatePage(
       content: updated.content,
     });
   }
+  await emitFor(siteId, "page", "updated", updated);
+  if (updated.status === "publish" && existing.status !== "publish") await emitFor(siteId, "page", "published", updated);
   return updated;
 }
 
@@ -129,5 +133,6 @@ export async function deletePage(siteId: string, id: string): Promise<boolean> {
   const existing = await getPage(siteId, id);
   if (!existing) return false;
   await prisma.page.delete({ where: { id } });
+  await emitFor(siteId, "page", "deleted", existing);
   return true;
 }

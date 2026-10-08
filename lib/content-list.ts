@@ -1,6 +1,7 @@
 import type { PostStatus, Prisma } from "@prisma/client";
 import { Cap, can } from "@/lib/caps";
 import { prisma } from "@/lib/prisma";
+import { emitFor } from "@/lib/webhooks/webhooks";
 
 export type ContentKind = "post" | "page";
 
@@ -103,9 +104,12 @@ export async function bulkUpdate(
   const delegate = kind === "post" ? prisma.post : prisma.page;
   // both delegates share these fields; the cast keeps one code path
   const model = delegate as typeof prisma.post;
+  // what each row was before, so webhooks can say what changed
+  const prior = await model.findMany({ where: base });
 
   if (action === "delete") {
     const res = await model.deleteMany({ where: { ...base, status: "trash" } });
+    for (const row of prior.filter((r) => r.status === "trash")) await emitFor(siteId, kind, "deleted", row);
     return res.count;
   }
 
@@ -141,6 +145,10 @@ export async function bulkUpdate(
       OR: ids.map((id) => ({ payload: { path: ["entityId"], equals: id } })),
     },
   });
+  for (const row of prior) {
+    await emitFor(siteId, kind, "updated", { ...row, status });
+    if (status === "publish" && row.status !== "publish") await emitFor(siteId, kind, "published", { ...row, status });
+  }
   return count;
 }
 

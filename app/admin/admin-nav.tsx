@@ -41,6 +41,7 @@ export const NAV: Group[] = [
     items: [
       { href: "/admin/users", label: "Users" },
       { href: "/admin/plugins", label: "Plugins" },
+      { href: "/admin/webhooks", label: "Webhooks" },
       { href: "/admin/settings", label: "Settings" },
     ],
   },

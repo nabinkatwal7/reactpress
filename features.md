@@ -209,7 +209,7 @@ step 39, ✅ Resolve site by domain or `/site-slug` path in middleware → corre
 step 40, ✅ Ship public REST for posts, pages, media, taxonomies, users (read rules) → unauthenticated read works where allowed
 step 41, ✅ Ship authenticated admin REST mirroring WP-style resources → CLI and admin share API
 step 42, ✅ Build `packages/cli` with login, scaffold, user, plugin, theme, export commands → CLI can create a post
-step 43, Add webhooks on post publish/update/delete → outbound HTTP fires on events
+step 43, ✅ Add webhooks on post publish/update/delete → outbound HTTP fires on events
 
 ### Phase H — Marketplace and portability
 

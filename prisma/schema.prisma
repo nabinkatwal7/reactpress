@@ -133,6 +133,7 @@ model Site {
   plugins       PluginInstall[]
   pluginData    PluginData[]
   members       SiteMember[]
+  webhooks      Webhook[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -543,4 +544,24 @@ model ApiToken {
   createdAt  DateTime  @default(now())
 
   @@index([userId])
+}
+
+/// Outbound HTTP call when content changes. Each delivery is signed with `secret` (HMAC-SHA256).
+model Webhook {
+  id        String    @id @default(cuid())
+  siteId    String
+  site      Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String    @default("")
+  url       String
+  /// Subscribed events, e.g. post.published. See lib/webhooks/events.ts.
+  events    String[]
+  secret    String
+  active    Boolean   @default(true)
+  /// Outcome of the most recent delivery attempt.
+  lastStatus Int?
+  lastError  String?
+  lastAt     DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([siteId, active])
 }

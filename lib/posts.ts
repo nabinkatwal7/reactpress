@@ -6,6 +6,7 @@ import { setPostTerms } from "@/lib/terms";
 import { getMedia } from "@/lib/media";
 import { getPostType } from "@/lib/registry";
 import { slugify } from "@/lib/slug";
+import { emitFor } from "@/lib/webhooks/webhooks";
 import { withSiteId } from "@/lib/site";
 import type { CreatePostInput, UpdatePostInput } from "@/lib/validations/post";
 
@@ -97,6 +98,7 @@ export async function createPost(
     title: created.title,
     content: created.content,
   });
+  if (created.status === "publish") await emitFor(siteId, "post", "published", created);
   return created;
 }
 
@@ -149,6 +151,8 @@ export async function updatePost(
       content: updated.content,
     });
   }
+  await emitFor(siteId, "post", "updated", updated);
+  if (updated.status === "publish" && existing.status !== "publish") await emitFor(siteId, "post", "published", updated);
   return updated;
 }
 
@@ -156,5 +160,6 @@ export async function deletePost(siteId: string, id: string): Promise<boolean> {
   const existing = await getPost(siteId, id);
   if (!existing) return false;
   await prisma.post.delete({ where: { id } });
+  await emitFor(siteId, "post", "deleted", existing);
   return true;
 }

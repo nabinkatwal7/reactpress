@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { EntityType } from "@/lib/revisions";
+import { WEBHOOK_JOB, emitFor, runWebhookJob } from "@/lib/webhooks/webhooks";
 
 export const PUBLISH_JOB = "publish";
 
@@ -45,6 +46,11 @@ async function publishDue(siteId: string, { entityType, entityId }: Payload, now
     entityType === "post"
       ? await prisma.post.updateMany({ where, data })
       : await prisma.page.updateMany({ where, data });
+  if (res.count > 0) {
+    // announce what just went live
+    const row = await (entityType === "post" ? prisma.post : (prisma.page as unknown as typeof prisma.post)).findFirst({ where: { id: entityId, siteId } });
+    if (row) await emitFor(siteId, entityType, "published", row);
+  }
   return res.count;
 }
 
@@ -68,6 +74,8 @@ export async function runDueJobs(now = new Date()) {
     try {
       if (job.type === PUBLISH_JOB) {
         await publishDue(job.siteId, job.payload as Payload, now);
+      } else if (job.type === WEBHOOK_JOB) {
+        await runWebhookJob(job.siteId, job.payload as Parameters<typeof runWebhookJob>[1]);
       }
       await prisma.job.update({ where: { id: job.id }, data: { status: "done" } });
       done += 1;

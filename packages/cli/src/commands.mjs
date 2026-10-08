@@ -160,6 +160,43 @@ const userCommands = {
   },
 };
 
+// ---- webhooks ---------------------------------------------------------------------------------------
+
+const webhookCommands = {
+  async list({ flags }) {
+    const { webhooks } = await api("GET", "/api/admin/webhooks");
+    if (flags.json) return printJson(webhooks);
+    if (!webhooks.length) return console.log("No webhooks.");
+    console.log(table(["ID", "ACTIVE", "EVENTS", "LAST", "URL"], webhooks.map((w) => [w.id, w.active ? "yes" : "paused", w.events.join(","), w.lastAt ? (w.lastError ?? `HTTP ${w.lastStatus}`) : "-", w.url])));
+  },
+  async create({ flags }) {
+    const url = need(flags.url, "reactpress webhook create --url https://example.com/hook [--events post.published,post.updated] [--name n]");
+    const events = String(flags.events ?? "post.published").split(",").map((e) => e.trim()).filter(Boolean);
+    const { webhook } = await api("POST", "/api/admin/webhooks", { url, events, name: typeof flags.name === "string" ? flags.name : undefined });
+    if (flags.json) return printJson(webhook);
+    console.log(`Created webhook ${webhook.id}.`);
+    console.log(`Signing secret (shown once): ${webhook.secret}`);
+  },
+  async test({ positionals }) {
+    const id = need(positionals[0], "reactpress webhook test <id>");
+    const { result } = await api("POST", `/api/admin/webhooks/${encodeURIComponent(id)}/test`);
+    if (result.status) console.log(`Receiver answered HTTP ${result.status}.`);
+    else throw new Error(`Test failed: ${result.error}`);
+  },
+  async pause({ positionals }) {
+    await api("PATCH", `/api/admin/webhooks/${encodeURIComponent(need(positionals[0], "reactpress webhook pause <id>"))}`, { active: false });
+    console.log("Paused.");
+  },
+  async resume({ positionals }) {
+    await api("PATCH", `/api/admin/webhooks/${encodeURIComponent(need(positionals[0], "reactpress webhook resume <id>"))}`, { active: true });
+    console.log("Resumed.");
+  },
+  async delete({ positionals }) {
+    await api("DELETE", `/api/admin/webhooks/${encodeURIComponent(need(positionals[0], "reactpress webhook delete <id>"))}`);
+    console.log("Deleted.");
+  },
+};
+
 // ---- scaffold + export ----------------------------------------------------------------------------------
 
 async function scaffoldCmd({ positionals, flags }) {
@@ -196,6 +233,7 @@ export const COMMANDS = {
   plugin: { sub: extensionCommands("plugin", ["install", "activate", "deactivate", "delete"]), help: "plugin list|install|activate|deactivate|delete  Manage plugins" },
   theme: { sub: extensionCommands("theme", ["install", "activate", "uninstall"]), help: "theme list|install|activate|uninstall          Manage themes" },
   user: { sub: userCommands, help: "user list|add|role|remove|create                Manage who can do what on this site" },
+  webhook: { sub: webhookCommands, help: "webhook list|create|test|pause|resume|delete       Outbound webhooks on content changes" },
   scaffold: { run: scaffoldCmd, help: "scaffold <plugin|theme> <slug> [--dir d]       Create a starter plugin or theme in this project" },
   export: { run: exportCmd, help: "export [--out file.json]                         Export posts, pages and terms as JSON" },
 };

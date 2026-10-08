@@ -1,5 +1,6 @@
 import type { Prisma, Revision } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { emitFor } from "@/lib/webhooks/webhooks";
 import { withSiteId } from "@/lib/site";
 
 export type EntityType = "post" | "page";
@@ -16,6 +17,10 @@ async function findEntity(siteId: string, type: EntityType, id: string) {
     where: withSiteId(siteId, { id }),
     select: { id: true, title: true, content: true },
   });
+}
+
+async function findEntityRow(siteId: string, type: EntityType, id: string) {
+  return (delegate(type) as typeof prisma.post).findFirst({ where: withSiteId(siteId, { id }) });
 }
 
 /** Full snapshot; skips if identical to the latest saved revision. */
@@ -109,6 +114,8 @@ export async function restoreRevision(siteId: string, id: string, userId: string
   if (!exists) return null;
   await (delegate(type) as typeof prisma.post).update({ where: { id: rev.entityId }, data });
   await createRevision(siteId, type, rev.entityId, userId, data);
+  const restored = await findEntityRow(siteId, type, rev.entityId);
+  if (restored) await emitFor(siteId, type, "updated", restored);
   if (rev.kind === "autosave") {
     await prisma.revision.delete({ where: { id: rev.id } });
   }
