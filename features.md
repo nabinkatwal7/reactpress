@@ -165,7 +165,7 @@ step 10, ✅ Add scheduled status + job runner that publishes due posts → sche
 step 11, ✅ Add Category and Tag taxonomies linked to posts → filter posts by term
 step 12, ✅ Add CPT and custom taxonomy registry (DB + code registration) → register a type and CRUD it
 step 13, ✅ Build Media model, upload API, and library UI → upload and attach media to posts
-step 14, Build Comment model, public form, admin moderate (approve/spam/trash) → comments flow works
+step 14, ✅ Build Comment model, public form, admin moderate (approve/spam/trash) → comments flow works
 step 15, Build Menu + MenuItem models and menu editor UI → assign menu to a location
 step 16, Build WidgetArea + Widget models and widgets screen → add/remove widgets per area
 step 17, Build Settings store (key/value per site) for title, tagline, homepage, permalinks → settings save and apply

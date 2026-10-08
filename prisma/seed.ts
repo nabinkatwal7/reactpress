@@ -10,6 +10,7 @@ const CAPABILITIES: { key: string; name: string }[] = [
   { key: Cap.publishPosts, name: "Publish posts" },
   { key: Cap.editPages, name: "Edit pages" },
   { key: Cap.uploadFiles, name: "Upload files" },
+  { key: Cap.moderateComments, name: "Moderate comments" },
   { key: Cap.manageOptions, name: "Manage options" },
   { key: Cap.manageUsers, name: "Manage users" },
 ];
@@ -22,6 +23,7 @@ const ROLE_CAPS: Record<string, string[]> = {
     Cap.publishPosts,
     Cap.editPages,
     Cap.uploadFiles,
+    Cap.moderateComments,
   ],
   author: [Cap.accessAdmin, Cap.editPosts, Cap.publishPosts, Cap.uploadFiles],
   contributor: [Cap.accessAdmin, Cap.editPosts],

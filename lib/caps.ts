@@ -7,6 +7,7 @@ export const Cap = {
   publishPosts: "publish_posts",
   editPages: "edit_pages",
   uploadFiles: "upload_files",
+  moderateComments: "moderate_comments",
   manageOptions: "manage_options",
   manageUsers: "manage_users",
 } as const;

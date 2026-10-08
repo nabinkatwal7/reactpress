@@ -21,6 +21,7 @@ model User {
   posts         Post[]
   pages         Page[]
   uploads       Media[]
+  comments      Comment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -99,6 +100,7 @@ model Site {
   jobs      Job[]
   terms     Term[]
   media     Media[]
+  comments  Comment[]
   postTypes PostType[]
   taxonomies Taxonomy[]
   createdAt DateTime @default(now())
@@ -131,6 +133,7 @@ model Post {
   publishedAt DateTime?
   scheduledAt DateTime?
   terms       PostTerm[]
+  comments    Comment[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -286,4 +289,35 @@ model Media {
   updatedAt  DateTime @updatedAt
 
   @@index([siteId, createdAt])
+}
+
+enum CommentStatus {
+  pending
+  approved
+  spam
+  trash
+}
+
+model Comment {
+  id          String        @id @default(cuid())
+  siteId      String
+  site        Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  postId      String
+  post        Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName  String
+  authorEmail String
+  content     String
+  status      CommentStatus @default(pending)
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([siteId, status, createdAt])
+  @@index([postId, status])
 }
