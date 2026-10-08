@@ -149,8 +149,8 @@ Each step: do this → done when.
 
 ### Phase A — Foundation
 
-step 1, Create Next.js App Router project with TypeScript and Tailwind → app runs locally
-step 2, Add Postgres and Prisma; create base schema file → `prisma migrate` works
+step 1, ✅ Create Next.js App Router project with TypeScript and Tailwind → app runs locally
+step 2, ✅ Add Postgres and Prisma; create base schema file → `prisma migrate` works
 step 3, Add User, Session, Account models and NextAuth credentials login → can log in
 step 4, Create route shells for `/`, `/admin`, `/api/health` → three areas load
 step 5, Add Role + Capability tables and `can(user, cap)` helper → unauthorized admin routes redirect

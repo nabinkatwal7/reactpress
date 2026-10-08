@@ -1,0 +1,19 @@
+// ReactPress base schema — models grow in later steps
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Placeholder so the first migration creates a real table.
+/// Replaced by User / Site / content models in later steps.
+model SchemaMeta {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
