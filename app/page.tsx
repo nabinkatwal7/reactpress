@@ -49,10 +49,25 @@ export default function HomePage() {
       <div>
         <p className="text-sm text-neutral-500">ReactPress</p>
         <h1 className="text-3xl font-semibold tracking-tight">Home</h1>
+        <p className="mt-2 text-sm text-neutral-600">Public site shell</p>
       </div>
       <Suspense fallback={<p className="text-sm text-neutral-500">Loading…</p>}>
         <HomeContent />
       </Suspense>
+      <nav className="flex gap-4 text-sm">
+        <Link
+          href="/admin"
+          className="text-neutral-600 underline hover:text-neutral-900"
+        >
+          Admin
+        </Link>
+        <Link
+          href="/api/health"
+          className="text-neutral-600 underline hover:text-neutral-900"
+        >
+          API health
+        </Link>
+      </nav>
     </main>
   );
 }
