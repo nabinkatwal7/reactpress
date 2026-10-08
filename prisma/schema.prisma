@@ -111,6 +111,7 @@ model Site {
   templateParts TemplatePart[]
   themeMods ThemeMods[]
   templateOverrides TemplateOverride[]
+  plugins       PluginInstall[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -462,4 +463,19 @@ model TemplateOverride {
   createdAt DateTime @default(now())
 
   @@unique([siteId, theme, template])
+}
+
+/// A plugin installed for a site. Code lives in /plugins; `active` plugins are loaded on boot.
+model PluginInstall {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  slug        String
+  version     String
+  active      Boolean  @default(false)
+  /// Values for the settings declared in plugin.json (key -> string | boolean).
+  settings    Json     @default("{}")
+  installedAt DateTime @default(now())
+
+  @@unique([siteId, slug])
 }

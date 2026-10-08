@@ -1,4 +1,7 @@
 import type { ReactElement } from "react";
+import { toBlocks } from "@/lib/blocks";
+import { applyFilters } from "@/lib/hooks";
+import { ensurePluginsLoaded } from "@/lib/plugins/loader";
 import { getTaxonomy } from "@/lib/registry";
 import { searchContent } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
@@ -40,6 +43,7 @@ async function previewDraft(siteId: string, manifest: ThemeManifest, wanted: boo
 
 async function loadActive(preview = false): Promise<Loaded> {
   const siteId = await requireSiteId();
+  await ensurePluginsLoaded(siteId);
   const theme = await loadTheme(await getActiveThemeSlug(siteId));
   const draft = await previewDraft(siteId, theme.manifest, preview);
   const ctx = await buildThemeContext(siteId, theme.manifest, { draft });
@@ -76,10 +80,28 @@ function frame(loaded: Loaded, template: string, props: Record<string, unknown>)
   );
 }
 
+/**
+ * Plugin filter points on the data a template receives: `the_title` (string) and `the_content`
+ * (blocks), each with `{ kind: "post" | "page", id }` as extra argument.
+ */
+async function filterEntry(siteId: string, kind: "post" | "page", entry: unknown) {
+  if (!entry || typeof entry !== "object") return entry;
+  const e = entry as { id: string; title: string; content: unknown };
+  const ctx = { kind, id: e.id };
+  return {
+    ...e,
+    title: await applyFilters(siteId, "the_title", e.title, ctx),
+    content: await applyFilters(siteId, "the_content", toBlocks(e.content), ctx),
+  };
+}
+
 /** Resolve the template through the hierarchy and render it inside the theme frame. */
-function render(loaded: Loaded, info: HierarchyInfo, props: Record<string, unknown>) {
+async function render(loaded: Loaded, info: HierarchyInfo, props: Record<string, unknown>) {
   const available = new Set(loaded.manifest.templates.filter((n) => loaded.module.templates[n]));
-  return frame(loaded, resolveTemplate(templateCandidates(info), available, loaded.overrides), props);
+  const filtered = { ...props };
+  if ("post" in props) filtered.post = await filterEntry(loaded.siteId, "post", props.post);
+  if ("page" in props) filtered.page = await filterEntry(loaded.siteId, "page", props.page);
+  return frame(loaded, resolveTemplate(templateCandidates(info), available, loaded.overrides), filtered);
 }
 
 export async function renderHome(page = 1, preview = false): Promise<ReactElement> {

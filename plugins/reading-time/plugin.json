@@ -1,0 +1,7 @@
+{
+  "name": "Reading Time",
+  "slug": "reading-time",
+  "version": "1.0.0",
+  "author": "ReactPress",
+  "description": "Adds an estimated reading time to the start of every post."
+}

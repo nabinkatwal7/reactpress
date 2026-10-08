@@ -36,7 +36,13 @@ export const NAV: Group[] = [
       { href: "/admin/widgets", label: "Widgets" },
     ],
   },
-  { heading: "System", items: [{ href: "/admin/settings", label: "Settings" }] },
+  {
+    heading: "System",
+    items: [
+      { href: "/admin/plugins", label: "Plugins" },
+      { href: "/admin/settings", label: "Settings" },
+    ],
+  },
 ];
 
 function isActive(pathname: string, href: string) {
