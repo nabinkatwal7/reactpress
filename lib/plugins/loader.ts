@@ -1,6 +1,7 @@
 import { getHookBus, resetHookBus } from "@/lib/hooks";
 import { prisma } from "@/lib/prisma";
 import { PLUGIN_REGISTRY } from "@/plugins/registry";
+import { removeAdminPages, resetAdminPages } from "./admin-pages";
 import { createPluginApi } from "./api";
 
 /**
@@ -13,6 +14,7 @@ const booted = (g.__rpPluginBoot ??= new Map());
 
 async function boot(siteId: string) {
   resetHookBus(siteId);
+  resetAdminPages(siteId);
   const bus = getHookBus(siteId);
   const rows = await prisma.pluginInstall.findMany({ where: { siteId, active: true }, orderBy: { installedAt: "asc" } });
   for (const { slug } of rows) {
@@ -20,10 +22,11 @@ async function boot(siteId: string) {
     if (!entry) continue; // folder removed from the build; keep the row so the admin can still delete it
     try {
       const register = await entry.load();
-      await register(createPluginApi(siteId, slug, bus));
+      await register(createPluginApi(siteId, entry.manifest, bus));
     } catch (e) {
       // a broken plugin must not take the site down: drop whatever it half-registered and move on
       bus.removeOwner(slug);
+      removeAdminPages(siteId, slug);
       console.error(`[plugins] "${slug}" failed to register:`, e);
     }
   }

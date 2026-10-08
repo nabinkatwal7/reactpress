@@ -23,7 +23,11 @@ plugins/<slug>/
    types as theme customizer settings (`color`, `text`, `image`, `select`, `checkbox`). Keys are
    `snake_case` and unique. ReactPress renders the settings screen and stores the values per site.
 5. **Admin pages.** List them in `adminPages` (`{ slug, title }`) and supply the component with
-   `api.registerAdminPage(slug, Component)`. They appear under `/admin/plugins/<slug>/<page>`.
+   `api.registerAdminPage(slug, component)`. They appear under `/admin/plugins/<slug>/<page>` and
+   in the sidebar while the plugin is active. A page is a plain server function receiving
+   `{ siteId, settings }` (no hooks or client state); put JSX in a `.tsx` file next to `register.ts`.
+   Settings: ReactPress generates a form at `/admin/plugins/<slug>` from the `settings` fields.
+   Read them with `await api.getSettings()` inside handlers, never at register time (they can change).
 6. **Hooks.** `api.addAction(name, fn, priority?)` and `api.addFilter(name, fn, priority?)`.
    Handlers are removed automatically when the plugin is deactivated.
 7. **Sandbox.** Plugins reach data and files only through `api` (see the sandbox section once

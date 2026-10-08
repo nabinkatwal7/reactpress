@@ -50,11 +50,14 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminNav() {
+export function AdminNav({ pluginItems = [] }: { pluginItems?: Item[] }) {
   const pathname = usePathname();
+  const groups = pluginItems.length
+    ? [...NAV.slice(0, -1), { heading: "Plugin pages", items: pluginItems }, NAV[NAV.length - 1]]
+    : NAV;
   return (
     <nav aria-label="Admin" className="flex flex-col gap-4 text-sm">
-      {NAV.map((group, i) => (
+      {groups.map((group, i) => (
         <div key={i} className="flex flex-col gap-1">
           {group.heading ? (
             <p className="px-2 text-xs font-medium uppercase tracking-wide text-neutral-400">

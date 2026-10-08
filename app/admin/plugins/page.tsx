@@ -25,7 +25,12 @@ export default async function PluginsPage() {
               <p className="text-sm text-neutral-600">{manifest.description}</p>
               <p className="text-xs text-neutral-500">By {manifest.author}</p>
             </div>
-            <PluginActions slug={manifest.slug} installed={installed} active={active} />
+            <PluginActions
+              slug={manifest.slug}
+              installed={installed}
+              active={active}
+              hasConfig={manifest.settings.length > 0 || manifest.adminPages.length > 0}
+            />
           </li>
         ))}
         {plugins.length === 0 ? <li className="text-sm text-neutral-500">No plugins available.</li> : null}

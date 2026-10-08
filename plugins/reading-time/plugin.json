@@ -1,7 +1,16 @@
 {
   "name": "Reading Time",
   "slug": "reading-time",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "ReactPress",
-  "description": "Adds an estimated reading time to the start of every post."
+  "description": "Adds an estimated reading time to the start of every post.",
+  "settings": [
+    { "key": "label", "label": "Label after the number", "type": "text", "default": "min read" },
+    { "key": "words_per_minute", "label": "Reading speed", "type": "select", "default": "220", "options": [
+      { "value": "180", "label": "Slow (180 wpm)" },
+      { "value": "220", "label": "Average (220 wpm)" },
+      { "value": "280", "label": "Fast (280 wpm)" }
+    ] }
+  ],
+  "adminPages": [{ "slug": "about", "title": "Reading time" }]
 }

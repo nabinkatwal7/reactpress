@@ -55,3 +55,13 @@ export async function deletePlugin(siteId: string, slug: string) {
   await prisma.pluginInstall.delete({ where: { id: row.id } });
   return true;
 }
+
+/** Sidebar entries for the admin pages of the site's active plugins. */
+export async function activePluginPages(siteId: string): Promise<{ href: string; label: string }[]> {
+  const rows = await prisma.pluginInstall.findMany({ where: { siteId, active: true }, orderBy: { installedAt: "asc" } });
+  return rows.flatMap(({ slug }) =>
+    Object.hasOwn(PLUGIN_REGISTRY, slug)
+      ? PLUGIN_REGISTRY[slug].manifest.adminPages.map((p) => ({ href: `/admin/plugins/${slug}/${p.slug}`, label: p.title }))
+      : [],
+  );
+}

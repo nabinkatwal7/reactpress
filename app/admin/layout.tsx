@@ -1,3 +1,4 @@
+import { activePluginPages } from "@/lib/plugins/plugins";
 import { requireAdmin } from "@/lib/require-admin";
 import { getSettings } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
@@ -10,7 +11,8 @@ export const instant = false;
 
 async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
-  const settings = await getSettings(await requireSiteId());
+  const siteId = await requireSiteId();
+  const [settings, pluginItems] = await Promise.all([getSettings(siteId), activePluginPages(siteId)]);
 
   return (
     <div className="flex min-h-full flex-1">
@@ -18,7 +20,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
         <Link href="/admin" className="px-2 text-sm font-semibold tracking-tight">
           ReactPress
         </Link>
-        <AdminNav />
+        <AdminNav pluginItems={pluginItems} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
