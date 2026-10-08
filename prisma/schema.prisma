@@ -105,6 +105,7 @@ model Site {
   taxonomies Taxonomy[]
   menus     Menu[]
   menuLocations MenuLocation[]
+  widgetAreas WidgetArea[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -364,4 +365,27 @@ model MenuLocation {
   menu     Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, location])
+}
+
+/// Theme-registered sidebar/footer region (see lib/widgets.ts for registered keys).
+model WidgetArea {
+  id      String   @id @default(cuid())
+  siteId  String
+  site    Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  key     String
+  name    String
+  widgets Widget[]
+
+  @@unique([siteId, key])
+}
+
+model Widget {
+  id       String     @id @default(cuid())
+  areaId   String
+  area     WidgetArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  type     String
+  settings Json       @default("{}")
+  position Int        @default(0)
+
+  @@index([areaId, position])
 }

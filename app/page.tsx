@@ -1,4 +1,5 @@
 import { auth, signOut } from "@/auth";
+import { WidgetArea } from "@/components/widget-area";
 import { getMenuForLocation, type ResolvedMenuItem } from "@/lib/menus";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -87,6 +88,9 @@ export default function HomePage() {
       </Suspense>
       <Suspense fallback={<p className="text-sm text-neutral-500">Loading…</p>}>
         <HomeContent />
+      </Suspense>
+      <Suspense fallback={null}>
+        <WidgetArea area="sidebar" />
       </Suspense>
       <nav className="flex gap-4 text-sm">
         <Link
