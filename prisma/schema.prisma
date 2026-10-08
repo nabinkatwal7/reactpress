@@ -108,6 +108,7 @@ model Site {
   widgetAreas   WidgetArea[]
   settings      Setting[]
   themes        ThemeInstall[]
+  templateParts TemplatePart[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -420,4 +421,17 @@ model ThemeInstall {
   installedAt DateTime @default(now())
 
   @@unique([siteId, slug])
+}
+
+/// Site-edited content for a theme's template part (block JSON). Absent row = theme default.
+model TemplatePart {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  theme     String
+  slug      String
+  content   Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@unique([siteId, theme, slug])
 }

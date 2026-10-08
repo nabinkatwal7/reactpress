@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { ContentBlocks } from "@/components/content-blocks";
 import { MenuList } from "@/components/public/parts";
 import type { PartProps } from "@/lib/theme/types";
 
 export default function Header({ ctx }: PartProps) {
   const logo = typeof ctx.mods.logo === "string" ? ctx.mods.logo : "";
+  const banner = ctx.partContent.header;
   return (
     <header className="border-b border-current/15">
+      {banner?.length ? (
+        <div className="border-b border-current/15 px-4 py-2 text-center text-sm">
+          <ContentBlocks content={banner} />
+        </div>
+      ) : null}
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4">
         <Link href="/" className="flex items-center gap-3">
           {logo ? (

@@ -1,5 +1,6 @@
 import { getMenuForLocation } from "@/lib/menus";
 import { getSettings } from "@/lib/settings";
+import { getPartContent } from "./parts";
 import { customizerDefaults, type ThemeManifest } from "./manifest";
 import type { ModValue, ThemeContext } from "./types";
 
@@ -39,12 +40,13 @@ export async function buildThemeContext(
     getMenuForLocation(siteId, "primary"),
     getMenuForLocation(siteId, "footer"),
   ]);
+  const partContent = await getPartContent(siteId, manifest.slug);
   return {
     site: { title: settings.site_title, tagline: settings.tagline },
     theme: { slug: manifest.slug },
     mods: resolveMods(manifest, opts.savedMods),
     menus: { primary, footer },
-    partContent: {},
+    partContent,
     postBase: settings.post_base,
     preview: opts.preview ?? false,
   };
