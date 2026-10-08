@@ -168,7 +168,7 @@ step 13, ✅ Build Media model, upload API, and library UI → upload and attach
 step 14, ✅ Build Comment model, public form, admin moderate (approve/spam/trash) → comments flow works
 step 15, ✅ Build Menu + MenuItem models and menu editor UI → assign menu to a location
 step 16, ✅ Build WidgetArea + Widget models and widgets screen → add/remove widgets per area
-step 17, Build Settings store (key/value per site) for title, tagline, homepage, permalinks → settings save and apply
+step 17, ✅ Build Settings store (key/value per site) for title, tagline, homepage, permalinks → settings save and apply
 step 18, Add Postgres full-text search on posts/pages → search returns ranked results
 
 ### Phase C — Editor and admin UX

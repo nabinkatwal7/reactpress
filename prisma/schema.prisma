@@ -106,6 +106,7 @@ model Site {
   menus     Menu[]
   menuLocations MenuLocation[]
   widgetAreas WidgetArea[]
+  settings  Setting[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -388,4 +389,15 @@ model Widget {
   position Int        @default(0)
 
   @@index([areaId, position])
+}
+
+/// Per-site key/value options. Known keys and their validation live in lib/settings.ts.
+model Setting {
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  key    String
+  value  Json
+
+  @@unique([siteId, key])
 }

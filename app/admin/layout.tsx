@@ -44,7 +44,9 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
           <Link href="/admin/media" className="hover:text-neutral-900">
             Media
           </Link>
-          <span className="text-neutral-400">Settings</span>
+          <Link href="/admin/settings" className="hover:text-neutral-900">
+            Settings
+          </Link>
         </nav>
         <Link
           href="/"

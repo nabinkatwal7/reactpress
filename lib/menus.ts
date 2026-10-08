@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getSettings, postPath } from "@/lib/settings";
 import { withSiteId } from "@/lib/site";
 import type { MenuItemInput } from "@/lib/validations/menu";
 
@@ -150,12 +151,13 @@ export async function getMenuForLocation(siteId: string, location: string): Prom
   const postSlug = new Map(posts.map((p) => [p.id, p.slug]));
   const pageSlug = new Map(pages.map((p) => [p.id, p.slug]));
 
+  const settings = await getSettings(siteId);
   const nodes = new Map<string, ResolvedMenuItem>();
   const roots: ResolvedMenuItem[] = [];
   for (const r of rows) {
     let href: string | null = null;
     if (r.objectType === "custom") href = r.url;
-    else if (r.objectType === "post" && postSlug.has(r.objectId!)) href = `/posts/${postSlug.get(r.objectId!)}`;
+    else if (r.objectType === "post" && postSlug.has(r.objectId!)) href = postPath(settings, postSlug.get(r.objectId!)!);
     else if (r.objectType === "page" && pageSlug.has(r.objectId!)) href = `/${pageSlug.get(r.objectId!)}`;
     if (!href) continue;
 

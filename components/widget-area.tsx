@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getSettings, postPath } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
 import { getAreaWidgets } from "@/lib/widgets";
 import Link from "next/link";
@@ -31,6 +32,7 @@ export async function WidgetArea({ area }: { area: string }) {
 }
 
 async function RecentPosts({ siteId, count }: { siteId: string; count: number }) {
+  const settings = await getSettings(siteId);
   const posts = await prisma.post.findMany({
     where: { siteId, type: "post", status: "publish" },
     orderBy: { publishedAt: "desc" },
@@ -41,7 +43,7 @@ async function RecentPosts({ siteId, count }: { siteId: string; count: number })
     <ul className="flex flex-col gap-1">
       {posts.map((p) => (
         <li key={p.id}>
-          <Link href={`/posts/${p.slug}`} className="underline">
+          <Link href={postPath(settings, p.slug)} className="underline">
             {p.title}
           </Link>
         </li>
