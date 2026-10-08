@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { commentCounts, listComments } from "@/lib/comments";
 import { requireSiteId } from "@/lib/site";
 import { commentStatusSchema } from "@/lib/validations/comment";
@@ -20,10 +21,7 @@ export default async function CommentsPage({ searchParams }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Comments</h1>
-      </div>
+      <PageHeader title="Comments" />
 
       <nav className="flex gap-4 text-sm">
         <Link href="/admin/comments" className={status ? "text-neutral-500" : "font-medium"}>

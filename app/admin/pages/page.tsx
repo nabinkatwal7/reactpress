@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { listPages } from "@/lib/pages";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -12,10 +13,7 @@ export default async function AdminPagesPage() {
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-neutral-500">Admin</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Pages</h1>
-        </div>
+        <PageHeader title="Pages" />
         <Link
           href="/admin/pages/new"
           className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white"

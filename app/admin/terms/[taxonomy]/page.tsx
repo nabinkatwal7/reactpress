@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { getTaxonomy } from "@/lib/registry";
 import { requireSiteId } from "@/lib/site";
 import { listTerms } from "@/lib/terms";
@@ -18,10 +19,7 @@ export default async function TermsPage({ params }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{meta.label}</h1>
-      </div>
+      <PageHeader title={<>{meta.label}</>} />
 
       <form
         action={createTermAction.bind(null, taxonomy)}

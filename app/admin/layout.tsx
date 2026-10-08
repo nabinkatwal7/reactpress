@@ -1,70 +1,52 @@
+import { signOut } from "@/auth";
+import { requireAdmin } from "@/lib/require-admin";
+import { getSettings } from "@/lib/settings";
+import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
 import { Suspense } from "react";
-import { requireAdmin } from "@/lib/require-admin";
+import { AdminNav } from "./admin-nav";
 
 export const instant = false;
 
 async function AdminShell({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const settings = await getSettings(await requireSiteId());
 
   return (
     <div className="flex min-h-full flex-1">
-      <aside className="flex w-56 shrink-0 flex-col gap-4 border-r border-neutral-200 bg-neutral-50 p-4">
-        <Link href="/admin" className="text-sm font-semibold tracking-tight">
-          ReactPress Admin
+      <aside className="flex w-56 shrink-0 flex-col gap-6 border-r border-neutral-200 bg-neutral-50 p-4">
+        <Link href="/admin" className="px-2 text-sm font-semibold tracking-tight">
+          ReactPress
         </Link>
-        <nav className="flex flex-col gap-1 text-sm text-neutral-600">
-          <Link href="/admin" className="hover:text-neutral-900">
-            Dashboard
-          </Link>
-          <Link href="/admin/posts" className="hover:text-neutral-900">
-            Posts
-          </Link>
-          <Link href="/admin/terms/category" className="hover:text-neutral-900">
-            Categories
-          </Link>
-          <Link href="/admin/terms/tag" className="hover:text-neutral-900">
-            Tags
-          </Link>
-          <Link href="/admin/types" className="hover:text-neutral-900">
-            Content types
-          </Link>
-          <Link href="/admin/comments" className="hover:text-neutral-900">
-            Comments
-          </Link>
-          <Link href="/admin/menus" className="hover:text-neutral-900">
-            Menus
-          </Link>
-          <Link href="/admin/widgets" className="hover:text-neutral-900">
-            Widgets
-          </Link>
-          <Link href="/admin/pages" className="hover:text-neutral-900">
-            Pages
-          </Link>
-          <Link href="/admin/media" className="hover:text-neutral-900">
-            Media
-          </Link>
-          <Link href="/admin/settings" className="hover:text-neutral-900">
-            Settings
-          </Link>
-        </nav>
-        <Link
-          href="/"
-          className="mt-auto text-sm text-neutral-500 hover:text-neutral-900"
-        >
-          ← Public site
-        </Link>
+        <AdminNav />
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-8 py-3 text-sm">
+          <Link href="/" target="_blank" className="font-medium hover:underline">
+            {settings.site_title} ↗
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-neutral-500">{session.user?.email}</span>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/login" });
+              }}
+            >
+              <button type="submit" className="text-neutral-600 hover:underline">
+                Sign out
+              </button>
+            </form>
+          </div>
+        </header>
+        {children}
+      </div>
     </div>
   );
 }
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense
       fallback={

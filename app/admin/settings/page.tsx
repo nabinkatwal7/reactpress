@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/lib/prisma";
 import { POST_BASES, loadSettings } from "@/lib/settings";
 import { requireSiteId } from "@/lib/site";
@@ -18,10 +19,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      </div>
+      <PageHeader title="Settings" />
       <SettingsForm initial={settings} pages={pages} postBases={[...POST_BASES]} />
     </main>
   );

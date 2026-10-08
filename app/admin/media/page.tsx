@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { isImage, listMedia, mediaUrl } from "@/lib/media";
 import { requireSiteId } from "@/lib/site";
 import { deleteMediaAction } from "./actions";
@@ -10,10 +11,7 @@ export default async function MediaPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Media</h1>
-      </div>
+      <PageHeader title="Media" />
 
       <UploadForm />
 

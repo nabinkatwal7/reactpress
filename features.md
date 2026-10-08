@@ -173,7 +173,7 @@ step 18, ✅ Add Postgres full-text search on posts/pages → search returns ran
 
 ### Phase C — Editor and admin UX
 
-step 19, Build admin chrome (sidebar, top bar, screen header) matching CMS patterns → all admin pages share layout
+step 19, ✅ Build admin chrome (sidebar, top bar, screen header) matching CMS patterns → all admin pages share layout
 step 20, Build block editor that reads/writes block JSON → publish stores blocks, public renders them
 step 21, Build list tables for posts/pages/media with filters, search, bulk actions → bulk trash/publish works
 step 22, Build media picker modal reusable from the editor → insert image into a block

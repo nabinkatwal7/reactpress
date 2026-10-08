@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { listMedia } from "@/lib/media";
 import { getPost } from "@/lib/posts";
 import { requireSiteId } from "@/lib/site";
@@ -24,12 +25,7 @@ export default async function EditPostPage({ params }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <Link href="/admin/posts" className="text-sm text-neutral-500 hover:underline">
-          ← Posts
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Edit post</h1>
-      </div>
+      <PageHeader back={{ href: "/admin/posts", label: "Posts" }} title="Edit post" />
       <PostForm
         mode="edit"
         postId={post.id}

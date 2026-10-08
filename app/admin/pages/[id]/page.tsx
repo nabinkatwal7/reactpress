@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { getPage } from "@/lib/pages";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -23,12 +24,7 @@ export default async function EditPagePage({ params }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <Link href="/admin/pages" className="text-sm text-neutral-500 hover:underline">
-          ← Pages
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Edit page</h1>
-      </div>
+      <PageHeader back={{ href: "/admin/pages", label: "Pages" }} title="Edit page" />
       <PageForm
         mode="edit"
         pageId={page.id}

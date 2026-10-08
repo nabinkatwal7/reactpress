@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { getMenu, getMenuItemsFlat, MENU_LOCATIONS } from "@/lib/menus";
 import { prisma } from "@/lib/prisma";
 import { requireSiteId } from "@/lib/site";
@@ -37,12 +38,7 @@ export default async function EditMenuPage({ params }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <Link href="/admin/menus" className="text-sm text-neutral-500 hover:underline">
-          ← Menus
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{menu.name}</h1>
-      </div>
+      <PageHeader back={{ href: "/admin/menus", label: "Menus" }} title={<>{menu.name}</>} />
       <MenuEditor
         menuId={menu.id}
         initialName={menu.name}

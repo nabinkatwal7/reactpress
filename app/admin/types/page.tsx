@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { listPostTypes, listTaxonomies } from "@/lib/registry";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -14,10 +15,7 @@ export default async function TypesPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-8 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Content types</h1>
-      </div>
+      <PageHeader title="Content types" />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">Post types</h2>

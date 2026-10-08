@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/admin/page-header";
 import { listMenus, MENU_LOCATIONS } from "@/lib/menus";
 import { requireSiteId } from "@/lib/site";
 import Link from "next/link";
@@ -11,10 +12,7 @@ export default async function MenusPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
-      <div>
-        <p className="text-sm text-neutral-500">Admin</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Menus</h1>
-      </div>
+      <PageHeader title="Menus" />
 
       <form action={createMenuAction} className="flex max-w-xl gap-2 text-sm">
         <input
